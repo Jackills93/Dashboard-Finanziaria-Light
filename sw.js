@@ -7,8 +7,8 @@
    da lì quando la rete manca. Non tocca mai i dati (localStorage):
    quelli restano indipendenti dalla cache e da questo file. */
 
-const CACHE = 'bilancio-domestico-v1';
-const SHELL = ['./', './bilancio-domestico.html'];
+const CACHE = 'bilancio-domestico-v2';
+const SHELL = ['./', './index.html'];
 
 self.addEventListener('install', event=>{
   event.waitUntil(
@@ -34,15 +34,19 @@ self.addEventListener('fetch', event=>{
   const isNav = event.request.mode === 'navigate';
 
   if(isNav){
-    event.respondWith(
-      fetch(event.request)
-        .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c=>c.put(event.request, copy));
-          return res;
-        })
-        .catch(() => caches.match(event.request).then(r => r || caches.match('./bilancio-domestico.html')))
-    );
+    event.respondWith((async () => {
+      try{
+        const res = await fetch(event.request);
+        const copy = res.clone();
+        caches.open(CACHE).then(c=>c.put(event.request, copy));
+        return res;
+      }catch(e){
+        // offline: la pagina esatta richiesta, o l'ultima versione nota della shell
+        return (await caches.match(event.request))
+          || (await caches.match('./index.html'))
+          || (await caches.match('./'));
+      }
+    })());
     return;
   }
 
