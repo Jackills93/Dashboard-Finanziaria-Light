@@ -428,6 +428,7 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
     <button data-v="movimenti">Movimenti <span class="cnt" id="cntMov"></span></button>
     <button data-v="importa">Importa</button>
     <button data-v="budget">Budget</button>
+    <button data-v="abbonamenti">Abbonamenti <span class="cnt" id="cntSub"></span></button>
     <button data-v="conti">Conti</button>
     <button data-v="obiettivi">Obiettivi</button>
     <button data-v="investimenti">Investimenti</button>
@@ -687,6 +688,46 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
     </div>
   </section>
 
+  <!-- ================= ABBONAMENTI ================= -->
+  <section class="view" id="v-abbonamenti">
+    <div class="stack">
+      <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr);">
+        <div class="kpi lead"><div class="k-lab">Costo mensile</div><div class="k-val mono" id="sMonth">—</div><div class="k-sub">annuali divisi per 12</div></div>
+        <div class="kpi"><div class="k-lab">Costo annuo</div><div class="k-val mono" id="sYear">—</div><div class="k-sub">mensili × 12 + annuali</div></div>
+        <div class="kpi"><div class="k-lab">Attivi</div><div class="k-val mono" id="sCnt">—</div><div class="k-sub" id="sCntSub">—</div></div>
+        <div class="kpi"><div class="k-lab">Prossimo rinnovo</div><div class="k-val mono" id="sNext" style="font-size:17px;">—</div><div class="k-sub" id="sNextSub">—</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Abbonamenti attivi <small>alla scadenza si rinnovano da soli finché non li elimini</small></h2>
+        <div class="row" style="margin-bottom:14px;">
+          <div class="f" style="flex:2 1 170px;"><label>Nome</label><input type="text" id="sName" placeholder="Es. Netflix"></div>
+          <div class="f" style="flex:0 0 120px;"><label>Importo</label><input type="number" id="sAmount" step="0.01" min="0"></div>
+          <div class="f" style="flex:0 0 124px;"><label>Periodicità</label>
+            <select id="sPeriod"><option value="monthly">Mensile</option><option value="yearly">Annuale</option></select>
+          </div>
+          <div class="f" style="flex:0 0 150px;"><label>Prossimo rinnovo</label><input type="date" id="sNextDate"></div>
+          <div class="f" style="flex:0 0 150px;"><label>Categoria</label><select id="sCat"></select></div>
+          <div class="f" style="flex:0 0 140px;"><label>Conto</label><select id="sAcc"></select></div>
+          <button class="b pri" id="btnAddSub">Aggiungi</button>
+        </div>
+        <div class="row" style="margin-bottom:14px;">
+          <label class="chip cl"><input type="checkbox" id="sRecord" checked> registra l'uscita tra i movimenti a ogni rinnovo</label>
+        </div>
+        <div class="tbl-wrap">
+          <table class="resp">
+            <thead><tr><th>Nome</th><th>Periodicità</th><th>Prossimo rinnovo</th><th>Categoria</th><th>Conto</th><th style="text-align:right;">Importo</th><th style="text-align:right;">Al mese</th><th></th></tr></thead>
+            <tbody id="subBody"></tbody>
+          </table>
+        </div>
+        <div class="note" style="margin-top:14px;">
+          <p><b>Promemoria su Telegram.</b> 3 giorni prima del rinnovo il bot ti manda un messaggio. Si configura in <b>Impostazioni → Bot Telegram</b> (token e chat ID). <span id="subTgState" class="muted"></span></p>
+          <p>Come per il resto del bot, l'invio parte quando la dashboard è aperta: aprila almeno una volta nei 3 giorni prima del rinnovo e il promemoria arriva (una sola volta per ogni scadenza).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= CONTI ================= -->
   <section class="view" id="v-conti">
     <div class="stack">
@@ -866,6 +907,17 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
           <button class="b sm ghost" id="btnTgWebhook">Disattiva webhook</button>
           <span class="muted" id="tgStatus"></span>
         </div>
+        <hr class="divider">
+        <div class="muted" style="margin-bottom:8px;">Promemoria abbonamenti</div>
+        <div class="row" style="align-items:flex-end; gap:14px;">
+          <div class="f" style="flex:0 0 200px;">
+            <label>Chat ID destinatario</label>
+            <input type="text" id="tgChat" placeholder="si compila da solo" autocomplete="off" spellcheck="false">
+          </div>
+          <label class="chip cl"><input type="checkbox" id="tgSubNotify"> avvisa 3 giorni prima del rinnovo</label>
+          <button class="b sm" id="btnTgNotifyTest">Invia prova</button>
+        </div>
+        <p class="muted" style="margin-top:8px; font-size:12.5px;">Il chat ID si riempie da solo quando scrivi qualcosa al bot (es. <code>/start</code>) e premi «Sincronizza ora». Al bot puoi anche scrivere <code>/abbonamenti</code> per l'elenco dei prossimi rinnovi.</p>
         <div id="tgLogWrap" hidden>
           <hr class="divider">
           <div class="muted" style="margin-bottom:8px;">Ultime sincronizzazioni</div>
@@ -930,8 +982,9 @@ function blank(){
   return {
     v:1, currency:'EUR', demo:false,
     persons:[], accounts:[], categories:[], movements:[],
-    recurring:[], goals:[], investments:[],
-    tgToken:'', tgAcc:'', tgOffset:0, tgAuto:false, tgLog:[]
+    recurring:[], subscriptions:[], goals:[], investments:[],
+    tgToken:'', tgAcc:'', tgOffset:0, tgAuto:false, tgLog:[],
+    tgChatId:'', tgSubNotify:true
   };
 }
 function load(){
@@ -1150,6 +1203,12 @@ function demoData(){
     {id:uid('r'),name:'Mutuo casa',type:'expense',amount:640,day:5,catId:byName('Casa & Bollette'),account:accN[0],person:'Pietro',start:shiftMonth(curMonthKey(),-2)+'-01',end:'',active:true,lastGen:''},
     {id:uid('r'),name:'Assicurazione auto',type:'expense',amount:47.50,day:12,catId:byName('Trasporti'),account:accN[0],person:'Pietro',start:shiftMonth(curMonthKey(),-2)+'-01',end:'',active:true,lastGen:''}
   ];
+  const inDays = n => { const x = new Date(); x.setDate(x.getDate()+n); return iso(x); };
+  d.subscriptions = [
+    {id:uid('s'),name:'Netflix',amount:13.99,period:'monthly',next:inDays(2),anchor:parseInt(inDays(2).slice(8),10),catId:byName('Svago'),account:accN[0],record:true,notifiedFor:''},
+    {id:uid('s'),name:'Spotify',amount:11.99,period:'monthly',next:inDays(17),anchor:parseInt(inDays(17).slice(8),10),catId:byName('Svago'),account:accN[0],record:true,notifiedFor:''},
+    {id:uid('s'),name:'Amazon Prime',amount:49.90,period:'yearly',next:inDays(94),anchor:parseInt(inDays(94).slice(8),10),catId:byName('Svago'),account:accN[0],record:true,notifiedFor:''}
+  ];
   d.goals = [
     {id:uid('g'),name:'Fondo emergenza',target:12000,current:8500,deadline:''},
     {id:uid('g'),name:'Viaggio in Giappone',target:4500,current:1350,deadline:(new Date().getFullYear()+1)+'-06-30'},
@@ -1191,6 +1250,43 @@ function runRecurring(){
       }
       if(inRange) r.lastGen = dIso;
       mo++; if(mo > 11){ mo = 0; y++; }
+    }
+  });
+  return made;
+}
+
+/* ---------------- abbonamenti: rinnovo automatico ---------------- */
+const PERIODS = { monthly:'mensile', yearly:'annuale' };
+// data successiva di un periodo, mantenendo il giorno originale (31 → 30/28 nei mesi corti)
+function addPeriod(dIso, period, anchor){
+  const p = dIso.split('-');
+  const d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1 + (period==='yearly' ? 12 : 1), 1);
+  const mk = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  const day = Math.min(anchor || parseInt(p[2],10), daysInMonth(mk));
+  return mk + '-' + String(day).padStart(2,'0');
+}
+function daysUntil(dIso){
+  const p = dIso.split('-');
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.round((new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10)) - t) / 86400000);
+}
+function subMonthly(s){ return s.period==='yearly' ? num(s.amount)/12 : num(s.amount); }
+// ogni scadenza arrivata (oggi o prima) rinnova l'abbonamento al periodo dopo,
+// registrando l'uscita se richiesto; nessun doppione se gira più volte
+function runSubscriptions(){
+  const todayIso = todayISO();
+  let made = 0;
+  S.subscriptions.forEach(s=>{
+    let guard = 0;
+    while(s.next && s.next <= todayIso && guard++ < 240){
+      if(s.record !== false && !S.movements.some(m=>m.subId === s.id && m.date === s.next)){
+        S.movements.push({
+          id:uid('m'), type:'expense', desc:s.name, amount:num(s.amount), date:s.next,
+          catId:s.catId||'', account:s.account||'', person:'', subId:s.id
+        });
+        made++;
+      }
+      s.next = addPeriod(s.next, s.period, s.anchor);
     }
   });
   return made;
@@ -1506,7 +1602,7 @@ function renderMovs(){
       : (m.catId ? '<span class="nm" style="display:inline-flex; align-items:center; gap:6px;"><span class="swatch" style="background:'+catColor(m.catId)+'"></span>'+esc(catName(m.catId))+'</span>' : '<span class="muted">—</span>');
     const accCell = m.type==='transfer' ? esc((m.from||'?') + ' → ' + (m.to||'?')) : esc(m.account || '—');
     html += '<tr><td data-label="Data" class="mono" style="font-size:12.5px; color:var(--dim); white-space:nowrap;">'+itDate(m.date)+'</td>' +
-      '<td data-label="Descrizione">'+esc(m.desc)+(m.recId?' <span class="chip" style="font-size:10px;">ricorrente</span>':'')+'</td>' +
+      '<td data-label="Descrizione">'+esc(m.desc)+(m.recId?' <span class="chip" style="font-size:10px;">ricorrente</span>':'')+(m.subId?' <span class="chip" style="font-size:10px;">abbonamento</span>':'')+'</td>' +
       '<td data-label="Categoria">'+catCell+'</td>' +
       '<td data-label="Conto" class="muted">'+accCell+'</td>' +
       '<td data-label="Persona" class="muted">'+esc(m.person||'—')+'</td>' +
@@ -1550,6 +1646,47 @@ function renderBudget(){
       '<td class="act no-print"><button class="mini" data-rectog="'+r.id+'" title="Attiva o sospendi">⏸</button>' +
       '<button class="mini del" data-recdel="'+r.id+'" title="Elimina">✕</button></td></tr>';
   }).join('') : '<tr><td colspan="7" class="empty">Nessuna ricorrenza. Mutuo, abbonamenti e stipendio si registrano da soli.</td></tr>';
+}
+
+/* ---------------- render: abbonamenti ---------------- */
+function whenTxt(n){
+  return n <= 0 ? 'oggi' : (n === 1 ? 'domani' : 'tra ' + n + ' giorni');
+}
+function renderSubs(){
+  const list = S.subscriptions.slice().sort((a,b)=> a.next < b.next ? -1 : (a.next > b.next ? 1 : 0));
+  const month = list.reduce((t,x)=>t+subMonthly(x),0);
+  const nM = list.filter(x=>x.period!=='yearly').length;
+  $('#cntSub').textContent = list.length || '';
+  $('#sMonth').textContent = fmt(month);
+  $('#sYear').textContent = fmt(month*12);
+  $('#sCnt').textContent = list.length;
+  $('#sCntSub').textContent = list.length ? nM + ' mensili · ' + (list.length-nM) + ' annuali' : 'nessun abbonamento';
+  if(list.length){
+    const f = list[0], n = daysUntil(f.next);
+    $('#sNext').textContent = f.name;
+    $('#sNextSub').textContent = whenTxt(n) + ' · ' + itDate(f.next) + ' · ' + fmt(num(f.amount));
+  }else{ $('#sNext').textContent = '—'; $('#sNextSub').textContent = '—'; }
+
+  $('#subBody').innerHTML = list.length ? list.map(x=>{
+    const n = daysUntil(x.next);
+    const soon = n <= 3;
+    return '<tr><td data-label="Nome">'+esc(x.name)+(x.record===false?' <span class="chip" style="font-size:10px;">solo promemoria</span>':'')+'</td>' +
+      '<td data-label="Periodicità"><span class="chip">'+PERIODS[x.period||'monthly']+'</span></td>' +
+      '<td data-label="Prossimo rinnovo" class="mono" style="white-space:nowrap;">'+itDate(x.next) +
+        ' <span class="'+(soon?'':'muted')+'" style="font-size:11.5px;'+(soon?' color:var(--warn);':'')+'">'+whenTxt(n)+'</span></td>' +
+      '<td data-label="Categoria" class="muted">'+esc(catName(x.catId)||'—')+'</td>' +
+      '<td data-label="Conto" class="muted">'+esc(x.account||'—')+'</td>' +
+      '<td data-label="Importo" class="num neg">− '+esc(fmt(num(x.amount)))+'</td>' +
+      '<td data-label="Al mese" class="num muted">'+esc(fmt(subMonthly(x)))+'</td>' +
+      '<td class="act no-print"><button class="mini" data-subamt="'+x.id+'" title="Cambia importo">€</button>' +
+      '<button class="mini" data-subdate="'+x.id+'" title="Cambia data di rinnovo">📅</button>' +
+      '<button class="mini del" data-subdel="'+x.id+'" title="Elimina (interrompe i rinnovi)">✕</button></td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty">Nessun abbonamento. Aggiungi Netflix, Spotify, palestra… e tieni d’occhio quanto spendi.</td></tr>';
+
+  const tgOk = (S.tgToken||'').trim() && S.tgChatId && S.tgSubNotify;
+  $('#subTgState').innerHTML = tgOk
+    ? '<span style="color:var(--good)">● promemoria attivi</span>'
+    : '○ promemoria non attivi: ' + (!(S.tgToken||'').trim() ? 'manca il token del bot.' : (!S.tgChatId ? 'manca il chat ID.' : 'disattivati nelle impostazioni.'));
 }
 
 /* ---------------- render: conti + persone ---------------- */
@@ -1670,6 +1807,8 @@ function fillSelects(){
   set('#qPerson', '<option value="">Tutte</option>' + perOpts, true);
   set('#rCat', '<option value="">— nessuna —</option>' + catOpts(''), true);
   set('#rAcc', '<option value="">— nessuno —</option>' + accOpts, true);
+  set('#sCat', '<option value="">— nessuna —</option>' + catOpts('expense'), true);
+  set('#sAcc', '<option value="">— nessuno —</option>' + accOpts, true);
   set('#tFrom', accOpts, true);
   set('#tTo', accOpts, true);
   set('#impAcc', '<option value="">— nessuno —</option>' + accOpts, true);
@@ -1684,6 +1823,7 @@ function renderAll(){
   renderDashboard();
   renderMovs();
   renderBudget();
+  renderSubs();
   renderAccounts();
   renderGoals();
   renderInv();
@@ -1891,6 +2031,7 @@ $('#catBody').addEventListener('click', async e=>{
     S.categories = S.categories.filter(x=>x.id!==c.id);
     S.movements.forEach(m=>{ if(m.catId===c.id) m.catId = ''; });
     S.recurring.forEach(r=>{ if(r.catId===c.id) r.catId = ''; });
+    S.subscriptions.forEach(r=>{ if(r.catId===c.id) r.catId = ''; });
     save(); renderAll(); toast('Categoria eliminata.');
   }
 });
@@ -1924,6 +2065,56 @@ $('#recBody').addEventListener('click', async e=>{
     if(!await confirmIt('Elimino «' + r.name + '»?' + (gen ? '\nI ' + gen + ' movimenti già generati restano nel registro.' : ''))) return;
     S.recurring = S.recurring.filter(x=>x.id!==r.id);
     save(); renderAll(); toast('Ricorrenza eliminata.');
+  }
+});
+
+/* ---------------- abbonamenti: form e azioni ---------------- */
+$('#btnAddSub').addEventListener('click', ()=>{
+  const name = $('#sName').value.trim();
+  const amount = num($('#sAmount').value);
+  const period = $('#sPeriod').value;
+  let next = $('#sNextDate').value;
+  if(!name){ toast('Dai un nome all’abbonamento.', true); return; }
+  if(amount <= 0){ toast('L’importo deve essere maggiore di zero.', true); return; }
+  if(!next){ toast('Indica la data del prossimo rinnovo.', true); return; }
+  const anchor = parseInt(next.slice(8),10);
+  // data nel passato = data di attivazione: porto avanti senza registrare i rinnovi già trascorsi
+  const todayIso = todayISO();
+  let guard = 0;
+  while(next < todayIso && guard++ < 600) next = addPeriod(next, period, anchor);
+  S.subscriptions.push({
+    id:uid('s'), name:name, amount:amount, period:period, next:next, anchor:anchor,
+    catId:$('#sCat').value, account:$('#sAcc').value, record:$('#sRecord').checked, notifiedFor:''
+  });
+  $('#sName').value = ''; $('#sAmount').value = '';
+  { const d = new Date(); d.setMonth(d.getMonth()+1); $('#sNextDate').value = iso(d); }
+  const made = runSubscriptions();
+  markReal(); save(); renderAll();
+  subNotify();
+  toast('Abbonamento aggiunto · prossimo rinnovo ' + itDate(S.subscriptions[S.subscriptions.length-1].next) + (made ? ' · uscita di oggi registrata' : '') + '.');
+});
+$('#subBody').addEventListener('click', async e=>{
+  const amt = e.target.closest('[data-subamt]'), dt = e.target.closest('[data-subdate]'), del = e.target.closest('[data-subdel]');
+  const id = (amt||dt||del||{dataset:{}}).dataset;
+  const x = S.subscriptions.find(s=>s.id===(id.subamt||id.subdate||id.subdel)); if(!x) return;
+  if(amt){
+    const v = await ask('Nuovo importo per «' + x.name + '» (dai prossimi rinnovi).', {input:x.amount, label:'Importo', type:'number', yes:'Salva'});
+    if(v === null) return;
+    if(num(v) <= 0){ toast('L’importo deve essere maggiore di zero.', true); return; }
+    x.amount = num(v); save(); renderAll(); toast('Importo aggiornato.');
+  }
+  if(dt){
+    const v = await ask('Data del prossimo rinnovo di «' + x.name + '».', {input:x.next, label:'Prossimo rinnovo', type:'date', yes:'Salva'});
+    if(!v) return;
+    if(v < todayISO()){ toast('Scegli oggi o una data futura.', true); return; }
+    x.next = v; x.anchor = parseInt(v.slice(8),10); x.notifiedFor = '';
+    runSubscriptions(); save(); renderAll(); subNotify(); toast('Data di rinnovo aggiornata.');
+  }
+  if(del){
+    const gen = S.movements.filter(m=>m.subId===x.id).length;
+    if(!await confirmIt('Elimino «' + x.name + '»?\nNon si rinnoverà più e non riceverai altri promemoria.' + (gen ? '\nLe ' + gen + ' uscite già registrate restano nel registro.' : ''))) return;
+    S.subscriptions = S.subscriptions.filter(s=>s.id!==x.id);
+    save(); renderAll(); toast('Abbonamento eliminato.');
   }
 });
 
@@ -2392,7 +2583,7 @@ $('#btnRestore').addEventListener('click', async ()=>{
     const keyOf = m => m.date + '|' + num(m.amount).toFixed(2) + '|' + (m.desc||'').toLowerCase();
     const have = {};
     S.movements.forEach(m=>have[keyOf(m)] = 1);
-    ['categories','accounts','persons','goals','investments','recurring'].forEach(k=>{
+    ['categories','accounts','persons','goals','investments','recurring','subscriptions'].forEach(k=>{
       (p[k]||[]).forEach(it=>{
         const same = (S[k]||[]).some(x=>(x.name||'').toLowerCase() === (it.name||'').toLowerCase() ||
           (k==='investments' && x.ticker === it.ticker));
@@ -2411,6 +2602,9 @@ $('#btnRestore').addEventListener('click', async ()=>{
   $('#curSel').value = S.currency || 'EUR';
   $('#tgToken').value = S.tgToken || '';
   $('#tgAuto').checked = !!S.tgAuto;
+  $('#tgChat').value = S.tgChatId || '';
+  $('#tgSubNotify').checked = S.tgSubNotify !== false;
+  runSubscriptions();
   save(); renderAll(); show('dashboard');
 });
 $('#btnWipe').addEventListener('click', async ()=>{
@@ -2419,12 +2613,14 @@ $('#btnWipe').addEventListener('click', async ()=>{
   try{ localStorage.removeItem(KEY); }catch(e){}
   viewMonth = curMonthKey(); personFilter = '';
   $('#tgToken').value = '';
+  $('#tgChat').value = '';
+  $('#tgSubNotify').checked = true;
   save(); renderAll(); show('dashboard');
   toast('Tutto cancellato. Si riparte da zero.');
 });
 $('#btnLoadDemo').addEventListener('click', async ()=>{
   if(!await confirmIt('Sostituisco i dati attuali con quelli di esempio?', 'Sostituisci')) return;
-  S = demoData(); runRecurring();
+  S = demoData(); runRecurring(); runSubscriptions();
   viewMonth = curMonthKey(); personFilter = '';
   save(); renderAll(); show('dashboard');
   toast('Dati di esempio caricati.');
@@ -2528,8 +2724,17 @@ async function tgSync(manual){
       S.tgOffset = u.update_id + 1;
       const msg = u.message;
       if(!msg || !msg.text) continue;
+      if(!S.tgChatId && msg.chat && msg.chat.id){
+        S.tgChatId = String(msg.chat.id);
+        $('#tgChat').value = S.tgChatId;
+        tgLogPush('chat ID ' + S.tgChatId + ' salvato per i promemoria');
+      }
+      if(/^\/abbonament/i.test(msg.text.trim())){
+        await tgReply(msg.chat.id, subListText());
+        continue;
+      }
       if(/^\/(start|help)/.test(msg.text.trim())){
-        await tgReply(msg.chat.id, 'Scrivi "25,50 Spesa Coop" per registrare una uscita, "+1850 Stipendio" per una entrata. Aggiungi #Categoria e #Conto se vuoi.');
+        await tgReply(msg.chat.id, 'Scrivi "25,50 Spesa Coop" per registrare una uscita, "+1850 Stipendio" per una entrata. Aggiungi #Categoria e #Conto se vuoi. Con /abbonamenti vedi i prossimi rinnovi.');
         continue;
       }
       const p = tgParse(msg.text);
@@ -2560,6 +2765,7 @@ async function tgSync(manual){
     }
     if(added) markReal();
     save(); renderAll();
+    subNotify();
     const txt = added ? added + (added===1?' movimento importato':' movimenti importati') : 'nessun messaggio nuovo';
     $('#tgStatus').innerHTML = '<span style="color:var(--good)">' + esc(txt) + '</span>';
     if(added || skipped) tgLogPush(txt + (skipped ? ' · ' + skipped + ' non capiti' : ''));
@@ -2597,6 +2803,68 @@ $('#tgAuto').addEventListener('change', function(){
   setupTgAuto();
   toast(this.checked ? 'Sincronizzazione automatica attiva mentre la pagina resta aperta.' : 'Sincronizzazione automatica disattivata.');
 });
+/* ---------------- promemoria abbonamenti (3 giorni prima) ---------------- */
+const SUB_NOTICE_DAYS = 3;
+let subTimer = null, subBusy = false;
+function subLine(x){
+  return '• ' + x.name + ' — ' + fmt(num(x.amount)) + ' (' + PERIODS[x.period||'monthly'] + '), ' + whenTxt(daysUntil(x.next)) + ', ' + itDate(x.next);
+}
+function subListText(){
+  if(!S.subscriptions.length) return 'Nessun abbonamento registrato nella dashboard.';
+  const list = S.subscriptions.slice().sort((a,b)=> a.next < b.next ? -1 : 1);
+  const month = list.reduce((t,x)=>t+subMonthly(x),0);
+  return '📋 Abbonamenti attivi (' + list.length + ')\n' + list.map(subLine).join('\n') +
+    '\n\nTotale: ' + fmt(month) + ' al mese · ' + fmt(month*12) + ' all’anno';
+}
+// manda un solo messaggio con tutti i rinnovi dei prossimi 3 giorni non ancora notificati;
+// notifiedFor = data di rinnovo già avvisata, così ogni scadenza si notifica una volta sola
+async function subNotify(){
+  if(subBusy || !S.tgSubNotify || !(S.tgToken||'').trim() || !S.tgChatId) return;
+  const due = S.subscriptions.filter(x=>{
+    const n = daysUntil(x.next);
+    return n >= 0 && n <= SUB_NOTICE_DAYS && x.notifiedFor !== x.next;
+  });
+  if(!due.length) return;
+  subBusy = true;
+  const text = '🔔 ' + (due.length === 1 ? 'Abbonamento in rinnovo' : due.length + ' abbonamenti in rinnovo') + '\n' +
+    due.map(subLine).join('\n') + '\n\nSe non vuoi rinnovare, disdici prima della scadenza ed eliminalo dalla dashboard.';
+  try{
+    await tgCall('sendMessage', {chat_id:S.tgChatId, text:text});
+    due.forEach(x=>{ x.notifiedFor = x.next; });
+    tgLogPush('promemoria inviato: ' + due.map(x=>x.name).join(', '));
+    save();
+  }catch(e){ /* nessuna rete o ambiente bloccato: si riprova al prossimo controllo */ }
+  subBusy = false;
+}
+// controllo al rientro nella pagina e ogni 30 minuti mentre resta aperta
+function subTick(){
+  const made = runSubscriptions();
+  if(made){ markReal(); save(); renderAll(); toast(made + (made===1 ? ' abbonamento rinnovato.' : ' abbonamenti rinnovati.')); }
+  else renderSubs();
+  subNotify();
+}
+function setupSubTimer(){
+  clearInterval(subTimer);
+  subTimer = setInterval(subTick, 30 * 60000);
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') subTick(); });
+$('#tgChat').addEventListener('change', function(){
+  S.tgChatId = this.value.trim(); save(); renderSubs();
+  if(S.tgChatId) toast('Chat ID salvato.');
+});
+$('#tgSubNotify').addEventListener('change', function(){
+  S.tgSubNotify = this.checked; save(); renderSubs();
+  if(this.checked) subNotify();
+  toast(this.checked ? 'Promemoria abbonamenti attivi.' : 'Promemoria abbonamenti disattivati.');
+});
+$('#btnTgNotifyTest').addEventListener('click', async ()=>{
+  if(!S.tgChatId){ toast('Manca il chat ID: scrivi /start al bot e premi «Sincronizza ora».', true); return; }
+  try{
+    await tgCall('sendMessage', {chat_id:S.tgChatId, text:'✅ Promemoria abbonamenti collegati.\n\n' + subListText()});
+    toast('Messaggio di prova inviato.');
+  }catch(e){ if(!e.soft) tgError(e); else toast(e.message, true); }
+});
+
 function setupTgAuto(){
   clearInterval(tgTimer);
   if(S.tgAuto && (S.tgToken||'').trim()){
@@ -2665,22 +2933,30 @@ function boot(){
   if(firstRun){
     S = demoData();
     runRecurring();
+    runSubscriptions();
     try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
   }
   const made = runRecurring();
+  const renewed = runSubscriptions();
   $('#curSel').value = S.currency || 'EUR';
   $('#fDate').value = todayISO();
   $('#tDate').value = todayISO();
   $('#rStart').value = curMonthKey() + '-01';
+  { const d = new Date(); d.setMonth(d.getMonth()+1); $('#sNextDate').value = iso(d); }
+  $('#tgChat').value = S.tgChatId || '';
+  $('#tgSubNotify').checked = S.tgSubNotify !== false;
   $('#tgToken').value = S.tgToken || '';
   $('#tgAuto').checked = !!S.tgAuto;
   syncMovForm();
   renderAll();
   renderTgLog();
   setupTgAuto();
+  setupSubTimer();
   registerSW();
   if(made) toast(made + (made===1 ? ' movimento ricorrente generato.' : ' movimenti ricorrenti generati.'));
-  if(made) save();
+  else if(renewed) toast(renewed + (renewed===1 ? ' abbonamento rinnovato.' : ' abbonamenti rinnovati.'));
+  if(made || renewed) save();
+  subNotify();
 }
 boot();
 </script>
