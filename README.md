@@ -22,8 +22,9 @@ Versione "leggera" e standalone di [Personal-Finance](https://github.com/Jackill
 
 ## Funzionalità
 
-- **Dashboard** — patrimonio, entrate/uscite del mese, andamento del saldo, budget per categoria, distribuzione delle uscite
-- **Movimenti** — entrate, uscite, giroconti tra conti, filtri, vista mensile, export CSV
+- **Dashboard** — saldo con variazione del mese, entrate/uscite a confronto col mese precedente, risparmio del mese, barre entrate/uscite degli ultimi 6 mesi, prossime scadenze (abbonamenti e ricorrenti a 30 giorni), spese per categoria con ciambella e budget
+- **Movimenti** — lista raggruppata per mese (e per giorno su mobile) con totali, ricerca, filtri a scomparsa, export CSV; inserimento e modifica in un pannello laterale
+- **Navigazione mobile** — barra in basso (Home, Movimenti, +, Abbonamenti, Altro) con il pulsante "+" sempre a portata di pollice
 - **Budget** — categorie con limite mensile, spese e entrate ricorrenti generate da sole ogni mese
 - **Abbonamenti** — periodicità mensile o annuale, rinnovo automatico alla scadenza (con uscita registrata tra i movimenti) finché non li elimini, costo mensile/annuo complessivo e promemoria Telegram 3 giorni prima del rinnovo
 - **Conti** — saldo calcolato da saldo iniziale + movimenti, multi-conto
