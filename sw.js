@@ -7,7 +7,7 @@
    da lì quando la rete manca. Non tocca mai i dati (localStorage):
    quelli restano indipendenti dalla cache e da questo file. */
 
-const CACHE = 'bilancio-domestico-v3';
+const CACHE = 'bilancio-domestico-v4';
 const SHELL = ['./', './index.html'];
 
 self.addEventListener('install', event=>{

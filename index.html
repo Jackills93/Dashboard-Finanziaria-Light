@@ -26,6 +26,8 @@
   --mono:'IBM Plex Mono','SF Mono',Menlo,Consolas,monospace;
   --r:10px; --r-sm:6px;
   --shadow:0 4px 16px rgba(0,0,0,.3);
+  --on-accent:#11201F;
+  color-scheme:dark;
 }
 *{box-sizing:border-box;}
 body{
@@ -129,11 +131,11 @@ button{font-family:inherit;}
   padding:8px 15px; font-size:13px; cursor:pointer; white-space:nowrap;
 }
 .b:hover{background:var(--line);}
-.b.pri{background:var(--accent); border-color:var(--accent); color:#11201F; font-weight:600;}
+.b.pri{background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600;}
 .b.pri:hover{background:var(--accent-hi);}
 .b.sm{padding:5px 10px; font-size:12px;}
-.b.danger{color:var(--bad); border-color:#4A2E2A;}
-.b.danger:hover{background:#38211E;}
+.b.danger{color:var(--bad); border-color:#4A2E2A; border-color:color-mix(in srgb, var(--bad) 32%, var(--panel));}
+.b.danger:hover{background:#38211E; background:color-mix(in srgb, var(--bad) 18%, var(--panel));}
 .b.ghost{background:none;}
 .b:disabled{opacity:.45; cursor:not-allowed;}
 .chip{
@@ -203,7 +205,7 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
   display:grid; grid-template-columns:26px 92px 104px 1fr 160px 74px; gap:9px; align-items:center;
   padding:7px 8px; border-bottom:1px solid var(--line-soft); font-size:13px;
 }
-.imp-row.dup{background:#2A231F;}
+.imp-row.dup{background:#2A231F; background:color-mix(in srgb, var(--warn) 8%, var(--panel));}
 .imp-row .d{font-family:var(--mono); font-size:12px; color:var(--dim);}
 .imp-row .a{font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; font-size:12.5px;}
 .imp-row .t{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
@@ -379,6 +381,14 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
   .row>.f{flex:1 1 100%!important;}
 }
 
+/* ---------- tema personalizzato ---------- */
+.theme-presets{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
+.theme-presets .chip{padding:6px 11px; font-size:12px;}
+.theme-presets .dots{display:inline-flex; gap:2px;}
+.theme-presets .dots i{width:10px; height:10px; border-radius:50%; display:block; border:1px solid rgba(127,127,127,.35);}
+.theme-colors .f{flex:0 0 118px;}
+.theme-colors input[type=color]{padding:3px; height:35px; cursor:pointer;}
+
 /* ---------- print (report da inviare) ---------- */
 @media print{
   :root{--ground:#fff; --panel:#fff; --raised:#F4F2EE; --line:#D9D4CC; --line-soft:#E8E4DD;
@@ -391,6 +401,16 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
   .shell{max-width:100%; padding:0;}
 }
 </style>
+<script>
+try{
+  var __t = JSON.parse(localStorage.getItem('pf_dash_theme') || 'null');
+  if(__t && __t.css){
+    var __s = document.createElement('style'); __s.id = 'themeVars'; __s.textContent = __t.css;
+    document.head.appendChild(__s);
+    if(__t.bar) document.querySelector('meta[name=theme-color]').setAttribute('content', __t.bar);
+  }
+}catch(e){}
+</script>
 
 <div class="shell">
 
@@ -851,6 +871,16 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
         <div class="row" style="margin-top:12px; align-items:center;">
           <span class="chip" id="pwaSwChip">verifico la cache offline…</span>
           <span class="chip" id="pwaModeChip"></span>
+        </div>
+      </div>
+
+      <div class="panel" id="themePanel">
+        <h2>Tema e colori <small>valgono solo su questo dispositivo, non finiscono nel backup</small></h2>
+        <div class="theme-presets" id="themePresets"></div>
+        <div class="row theme-colors" id="themeColors"></div>
+        <div class="row" style="margin-top:14px; align-items:center;">
+          <button class="b" id="btnThemeReset">Ripristina tema originale</button>
+          <span class="muted" id="themeInfo"></span>
         </div>
       </div>
 
@@ -1382,7 +1412,7 @@ function drawBalance(){
   }
   if(lo < 0 && hi > 0){
     const zy = Y(0);
-    g += '<line x1="'+pl+'" y1="'+zy.toFixed(1)+'" x2="'+(pl+iw)+'" y2="'+zy.toFixed(1)+'" stroke="#C2645A" stroke-width="1" stroke-dasharray="3 3"></line>';
+    g += '<line x1="'+pl+'" y1="'+zy.toFixed(1)+'" x2="'+(pl+iw)+'" y2="'+zy.toFixed(1)+'" style="stroke:var(--bad)" stroke-width="1" stroke-dasharray="3 3"></line>';
   }
 
   const line = pts.map((p,i)=>(i?'L':'M') + X(p.d).toFixed(1) + ' ' + Y(p.v).toFixed(1)).join(' ');
@@ -1391,14 +1421,14 @@ function drawBalance(){
 
   svg.innerHTML =
     '<defs><linearGradient id="bgrad" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#4F98A3" stop-opacity="0.34"></stop>' +
-      '<stop offset="100%" stop-color="#4F98A3" stop-opacity="0.02"></stop>' +
+      '<stop offset="0%" style="stop-color:var(--accent)" stop-opacity="0.34"></stop>' +
+      '<stop offset="100%" style="stop-color:var(--accent)" stop-opacity="0.02"></stop>' +
     '</linearGradient></defs>' +
     g +
     '<path d="'+area+'" fill="url(#bgrad)" stroke="none"></path>' +
-    '<path d="'+line+'" fill="none" stroke="#4F98A3" stroke-width="2" stroke-linejoin="round"></path>' +
-    '<circle cx="'+X(end.d).toFixed(1)+'" cy="'+Y(end.v).toFixed(1)+'" r="3.6" fill="#171614" stroke="#63B0BC" stroke-width="2"></circle>' +
-    '<text class="ax" x="'+Math.min(X(end.d)+8, W-4).toFixed(1)+'" y="'+(Y(end.v)-9).toFixed(1)+'" text-anchor="'+(X(end.d) > W-90 ? 'end' : 'start')+'" style="fill:#63B0BC; font-size:11px;">'+esc(fmtShort(end.v))+'</text>';
+    '<path d="'+line+'" fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linejoin="round"></path>' +
+    '<circle cx="'+X(end.d).toFixed(1)+'" cy="'+Y(end.v).toFixed(1)+'" r="3.6" style="fill:var(--ground); stroke:var(--accent-hi)" stroke-width="2"></circle>' +
+    '<text class="ax" x="'+Math.min(X(end.d)+8, W-4).toFixed(1)+'" y="'+(Y(end.v)-9).toFixed(1)+'" text-anchor="'+(X(end.d) > W-90 ? 'end' : 'start')+'" style="fill:var(--accent-hi); font-size:11px;">'+esc(fmtShort(end.v))+'</text>';
 
   $('#balSub').textContent = personFilter
     ? 'solo movimenti di ' + personFilter + ' — saldo cumulato nel mese'
@@ -1411,7 +1441,7 @@ function drawDonut(svgSel, legendSel, slices, centerLabel, size){
   const cx = size/2, cy = size/2, r = size/2 - 26, sw = size < 160 ? 19 : 22;
   const tot = slices.reduce((s,x)=>s+x.value,0);
   if(!tot){
-    svg.innerHTML = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#262320" stroke-width="'+sw+'"></circle>';
+    svg.innerHTML = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" style="stroke:var(--raised)" stroke-width="'+sw+'"></circle>';
     leg.innerHTML = '<div class="empty" style="padding:8px 0;">Nessun dato</div>';
     return;
   }
@@ -1425,8 +1455,8 @@ function drawDonut(svgSel, legendSel, slices, centerLabel, size){
       ' transform="rotate(-90 '+cx+' '+cy+')"><title>'+esc(s.label+' · '+fmt(s.value))+'</title></circle>';
     acc += frac;
   });
-  svg.innerHTML = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#262320" stroke-width="'+sw+'"></circle>' + arcs +
-    '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" style="fill:#F1EDE6; font-family:var(--mono); font-size:'+(size<160?13:15)+'px; font-weight:600;">'+esc(fmtShort(tot))+'</text>' +
+  svg.innerHTML = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" style="stroke:var(--raised)" stroke-width="'+sw+'"></circle>' + arcs +
+    '<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" style="fill:var(--ink); font-family:var(--mono); font-size:'+(size<160?13:15)+'px; font-weight:600;">'+esc(fmtShort(tot))+'</text>' +
     '<text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" class="ax">'+esc(centerLabel)+'</text>';
 
   leg.innerHTML = slices.map(s=>
@@ -1537,7 +1567,7 @@ function renderCatBars(){
     const scale = Math.max(r.spent, r.limit) || 1;
     const over = r.limit > 0 && r.spent > r.limit;
     const near = r.limit > 0 && !over && r.spent >= r.limit * 0.85;
-    const color = over ? '#C2645A' : (near ? '#D2A24C' : r.c.color);
+    const color = over ? 'var(--bad)' : (near ? 'var(--warn)' : r.c.color);
     const w = Math.min(100, r.spent / scale * 100);
     const lim = r.limit > 0 ? '<span class="lim-mark" style="left:' + (r.limit/scale*100).toFixed(1) + '%"></span>' : '';
     const right = r.limit > 0
@@ -1623,7 +1653,7 @@ function renderBudget(){
     let bar = '<span class="muted">—</span>';
     if(c.type==='expense'){
       const scale = Math.max(spent, lim) || 1;
-      bar = '<div class="track" style="width:120px;"><div class="fill" style="width:'+Math.min(100, spent/scale*100).toFixed(1)+'%; background:'+(over?'#C2645A':c.color)+'"></div></div>';
+      bar = '<div class="track" style="width:120px;"><div class="fill" style="width:'+Math.min(100, spent/scale*100).toFixed(1)+'%; background:'+(over?'var(--bad)':c.color)+'"></div></div>';
     }
     return '<tr><td data-label="Categoria"><span class="nm" style="display:inline-flex; align-items:center; gap:7px;"><span class="swatch" style="background:'+c.color+'"></span>'+esc(c.name)+'</span></td>' +
       '<td data-label="Tipo"><span class="chip">'+(c.type==='income'?'entrata':'uscita')+'</span></td>' +
@@ -1731,7 +1761,7 @@ function renderGoals(){
       '<div class="c-nm">'+esc(g.name)+'</div><div class="c-meta">obiettivo '+esc(fmt(t))+'</div></div>' +
       '<button class="mini del no-print" data-goaldel="'+g.id+'" title="Elimina">✕</button></div>' +
       '<div class="c-val '+(done?'pos':'')+'">'+esc(fmt(c))+'</div>' +
-      '<div class="track" style="margin-top:9px;"><div class="fill" style="width:'+(p*100).toFixed(1)+'%; background:'+(done?'#7BAE7E':'#4F98A3')+'"></div></div>' +
+      '<div class="track" style="margin-top:9px;"><div class="fill" style="width:'+(p*100).toFixed(1)+'%; background:'+(done?'var(--good)':'var(--accent)')+'"></div></div>' +
       '<div class="c-foot"><span>'+pct(p)+'</span><span>'+dl+'</span></div>' +
       '<div class="row no-print" style="margin-top:11px; gap:7px;">' +
       '<input type="number" step="0.01" min="0" placeholder="aggiungi" data-goalamt="'+g.id+'" style="flex:1; padding:5px 8px; font-size:12.5px;">' +
@@ -2873,6 +2903,128 @@ function setupTgAuto(){
 }
 
 /* ============================================================
+   TEMA — colori personalizzabili
+   L'utente sceglie 7 colori base; bordi, testo secondario e varianti
+   dell'accento si ricavano da quelli. Salvato a parte (pf_dash_theme):
+   è una preferenza del dispositivo, non entra nel backup e non si
+   cancella con «Cancella tutti i dati». Il CSS generato sta dentro
+   @media screen, così il report PDF resta sempre chiaro e leggibile.
+   ============================================================ */
+const THEME_KEY = 'pf_dash_theme';
+const THEME_FIELDS = [
+  ['ground','Sfondo'], ['panel','Pannelli'], ['ink','Testo'], ['accent','Accento'],
+  ['good','Positivo'], ['warn','Attenzione'], ['bad','Negativo']
+];
+const THEME_PRESETS = {
+  originale:{label:'Originale', c:{ground:'#171614', panel:'#1E1C19', ink:'#F1EDE6', accent:'#4F98A3', good:'#7BAE7E', warn:'#D2A24C', bad:'#C2645A'}},
+  chiaro:   {label:'Chiaro',    c:{ground:'#F3F0EA', panel:'#FFFFFF', ink:'#1F1C18', accent:'#2C7580', good:'#3B8546', warn:'#A8700C', bad:'#B3443A'}},
+  notte:    {label:'Notte blu', c:{ground:'#0F141C', panel:'#161D28', ink:'#E6ECF5', accent:'#5B8DEF', good:'#5FB38A', warn:'#E0A84B', bad:'#E0676A'}},
+  foresta:  {label:'Foresta',   c:{ground:'#121712', panel:'#1A211A', ink:'#EAF0E6', accent:'#8DB35E', good:'#6FB38A', warn:'#D8A94A', bad:'#D0705F'}},
+  prugna:   {label:'Prugna',    c:{ground:'#17131A', panel:'#201A24', ink:'#F0EAF3', accent:'#B07CD8', good:'#7BB38E', warn:'#D9A95A', bad:'#D46A7A'}}
+};
+let theme = { preset:'originale', colors:Object.assign({}, THEME_PRESETS.originale.c) };
+try{
+  const t = JSON.parse(localStorage.getItem(THEME_KEY) || 'null');
+  if(t && t.colors) theme = { preset:t.preset || 'custom', colors:Object.assign({}, THEME_PRESETS.originale.c, t.colors) };
+}catch(e){}
+
+function hexRgb(h){
+  h = (h||'#000').replace('#','');
+  if(h.length === 3) h = h.split('').map(x=>x+x).join('');
+  return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16) || 0);
+}
+function rgbHex(c){ return '#' + c.map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+function mix(a, b, t){ const x = hexRgb(a), y = hexRgb(b); return rgbHex(x.map((v,i)=>v + (y[i]-v)*t)); }
+function lum(h){
+  const c = hexRgb(h).map(v=>{ v /= 255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
+  return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2];
+}
+function contrast(a, b){ const x = lum(a), y = lum(b); return (Math.max(x,y)+0.05) / (Math.min(x,y)+0.05); }
+
+// dai 7 colori base a tutte le variabili usate dal foglio di stile
+function themeVars(c){
+  const light = lum(c.ground) > 0.4;
+  const onDark = mix(c.accent, '#000000', 0.8);
+  return {
+    '--ground':c.ground, '--panel':c.panel, '--ink':c.ink,
+    '--raised':mix(c.panel, c.ink, 0.04), '--line':mix(c.panel, c.ink, light ? 0.14 : 0.10), '--line-soft':mix(c.panel, c.ink, light ? 0.08 : 0.057),
+    '--dim':mix(c.ink, c.panel, 0.34), '--faint':mix(c.ink, c.panel, light ? 0.48 : 0.62),
+    '--accent':c.accent, '--accent-hi':mix(c.accent, light ? '#000000' : '#FFFFFF', 0.15), '--accent-dim':mix(c.accent, c.ground, light ? 0.72 : 0.55),
+    '--on-accent': contrast(c.accent, '#FFFFFF') >= contrast(c.accent, onDark) ? '#FFFFFF' : onDark,
+    '--good':c.good, '--warn':c.warn, '--bad':c.bad,
+    '--shadow': light ? '0 4px 16px rgba(0,0,0,.08)' : '0 4px 16px rgba(0,0,0,.3)',
+    'color-scheme': light ? 'light' : 'dark'
+  };
+}
+function isOriginal(){
+  const o = THEME_PRESETS.originale.c;
+  return THEME_FIELDS.every(f=>theme.colors[f[0]].toUpperCase() === o[f[0]].toUpperCase());
+}
+function applyTheme(persist){
+  let el = document.getElementById('themeVars');
+  const meta = document.querySelector('meta[name=theme-color]');
+  if(isOriginal()){
+    // tema originale: nessuna sovrascrittura, resta esattamente il CSS di partenza
+    if(el) el.remove();
+    meta.setAttribute('content', THEME_PRESETS.originale.c.ground);
+    if(persist){ try{ localStorage.removeItem(THEME_KEY); }catch(e){} }
+  }else{
+    const v = themeVars(theme.colors);
+    const css = '@media screen{:root{' + Object.keys(v).map(k=>k + ':' + v[k]).join(';') + '}}';
+    if(!el){ el = document.createElement('style'); el.id = 'themeVars'; document.head.appendChild(el); }
+    el.textContent = css;
+    meta.setAttribute('content', theme.colors.ground);
+    if(persist){
+      try{ localStorage.setItem(THEME_KEY, JSON.stringify({preset:theme.preset, colors:theme.colors, css:css, bar:theme.colors.ground})); }catch(e){}
+    }
+  }
+  renderThemeInfo();
+}
+function renderThemeInfo(){
+  const c = theme.colors;
+  const r = contrast(c.ink, c.ground), rp = contrast(c.ink, c.panel);
+  const low = Math.min(r, rp) < 4.5;
+  const pname = theme.preset === 'custom' ? 'personalizzato' : (THEME_PRESETS[theme.preset] ? THEME_PRESETS[theme.preset].label : 'personalizzato');
+  $('#themeInfo').innerHTML = 'Tema: <b>' + esc(pname) + '</b> · contrasto testo ' + Math.min(r, rp).toFixed(1) + ':1' +
+    (low ? ' <span style="color:var(--warn)">— basso, il testo potrebbe leggersi male</span>' : '');
+}
+function renderThemePanel(){
+  $('#themePresets').innerHTML = Object.keys(THEME_PRESETS).map(k=>{
+    const p = THEME_PRESETS[k];
+    return '<button class="chip cl' + (theme.preset === k ? ' on' : '') + '" data-preset="' + k + '">' +
+      '<span class="dots"><i style="background:' + p.c.ground + '"></i><i style="background:' + p.c.panel + '"></i><i style="background:' + p.c.accent + '"></i></span>' +
+      esc(p.label) + '</button>';
+  }).join('') + (theme.preset === 'custom' ? '<span class="chip on">personalizzato</span>' : '');
+  $('#themeColors').innerHTML = THEME_FIELDS.map(f=>
+    '<div class="f"><label for="tc_' + f[0] + '">' + f[1] + '</label>' +
+    '<input type="color" id="tc_' + f[0] + '" data-tc="' + f[0] + '" value="' + theme.colors[f[0]] + '"></div>'
+  ).join('');
+  renderThemeInfo();
+}
+$('#themePresets').addEventListener('click', e=>{
+  const b = e.target.closest('[data-preset]'); if(!b) return;
+  theme = { preset:b.dataset.preset, colors:Object.assign({}, THEME_PRESETS[b.dataset.preset].c) };
+  applyTheme(true); renderThemePanel();
+  toast('Tema «' + THEME_PRESETS[theme.preset].label + '» applicato.');
+});
+// 'input' = anteprima dal vivo mentre si sceglie; 'change' = salvataggio a scelta fatta
+$('#themeColors').addEventListener('input', e=>{
+  const k = e.target.dataset && e.target.dataset.tc; if(!k) return;
+  theme.colors[k] = e.target.value.toUpperCase();
+  theme.preset = 'custom';
+  applyTheme(false);
+});
+$('#themeColors').addEventListener('change', e=>{
+  if(!(e.target.dataset && e.target.dataset.tc)) return;
+  applyTheme(true); renderThemePanel();
+});
+$('#btnThemeReset').addEventListener('click', ()=>{
+  theme = { preset:'originale', colors:Object.assign({}, THEME_PRESETS.originale.c) };
+  applyTheme(true); renderThemePanel();
+  toast('Tema originale ripristinato.');
+});
+
+/* ============================================================
    PWA — installazione e uso offline
    Funziona per intero solo se il file è ospitato su un vero URL
    (GitHub Pages, Vercel, il link dell'artifact...): lì il service
@@ -2948,6 +3100,8 @@ function boot(){
   $('#tgToken').value = S.tgToken || '';
   $('#tgAuto').checked = !!S.tgAuto;
   syncMovForm();
+  applyTheme(false);
+  renderThemePanel();
   renderAll();
   renderTgLog();
   setupTgAuto();
