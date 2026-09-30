@@ -25,6 +25,7 @@ Versione "leggera" e standalone di [Personal-Finance](https://github.com/Jackill
 - **Dashboard** — patrimonio, entrate/uscite del mese, andamento del saldo, budget per categoria, distribuzione delle uscite
 - **Movimenti** — entrate, uscite, giroconti tra conti, filtri, vista mensile, export CSV
 - **Budget** — categorie con limite mensile, spese e entrate ricorrenti generate da sole ogni mese
+- **Abbonamenti** — periodicità mensile o annuale, rinnovo automatico alla scadenza (con uscita registrata tra i movimenti) finché non li elimini, costo mensile/annuo complessivo e promemoria Telegram 3 giorni prima del rinnovo
 - **Conti** — saldo calcolato da saldo iniziale + movimenti, multi-conto
 - **Obiettivi di risparmio** — target, scadenza, versamenti
 - **Investimenti** — posizioni con P&L e allocazione per tipo di strumento
@@ -100,6 +101,16 @@ Se vuoi che controlli da sola i nuovi messaggi ogni minuto, spunta **"sincronizz
 
 La persona viene riconosciuta dal nome Telegram di chi scrive, se coincide con una di quelle inserite nella dashboard (scheda **Conti**).
 
+### Promemoria abbonamenti
+
+3 giorni prima del rinnovo di un abbonamento il bot ti manda un messaggio su Telegram (uno solo per ogni scadenza).
+
+1. Scrivi `/start` al bot e premi **Sincronizza ora**: il **Chat ID** nel pannello Bot Telegram si compila da solo (oppure inseriscilo a mano)
+2. Lascia spuntato **avvisa 3 giorni prima del rinnovo** e premi **Invia prova** per verificare
+3. In qualunque momento puoi scrivere `/abbonamenti` al bot per l'elenco dei prossimi rinnovi
+
+Come la lettura dei messaggi, anche l'invio parte **solo quando la dashboard è aperta** (all'apertura, al rientro nella scheda e ogni 30 minuti): basta aprirla almeno una volta nei 3 giorni prima della scadenza.
+
 ### Sicurezza del token
 
 Il token dà il controllo completo del bot. Resta salvato solo nel tuo browser, ma **chiunque apra questa pagina sul tuo dispositivo lo può leggere** — non inserirlo mai in una copia della dashboard che condividi con altri. Se sospetti che sia stato esposto, revocalo su BotFather con `/revoke`.
@@ -125,4 +136,4 @@ Vanno tenuti nella stessa cartella su qualunque hosting statico (GitHub Pages, c
 
 - **Un solo bilancio per origine.** I dati sono legati all'indirizzo da cui apri la pagina: la stessa persona che apre due copie diverse del file in locale (`file://`) le vede come un unico bilancio condiviso, perché usano la stessa chiave di salvataggio.
 - **Niente sincronizzazione tra dispositivi.** Il bilancio aperto sul telefono e quello sul computer sono due bilanci separati, a meno di passarsi un backup a mano.
-- **Bot Telegram solo a pagina aperta** (o con sincronizzazione ogni 60 secondi attiva) — non è un servizio sempre acceso.
+- **Bot Telegram solo a pagina aperta** (o con sincronizzazione ogni 60 secondi attiva) — non è un servizio sempre acceso. Vale anche per i promemoria degli abbonamenti.
