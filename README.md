@@ -29,6 +29,7 @@ Versione "leggera" e standalone di [Personal-Finance](https://github.com/Jackill
 - **Conti** — saldo calcolato da saldo iniziale + movimenti, multi-conto
 - **Obiettivi di risparmio** — target, scadenza, versamenti
 - **Investimenti** — posizioni con P&L e allocazione per tipo di strumento
+- **Tema e colori** — 5 temi pronti (Originale, Chiaro, Notte blu, Foresta, Prugna) o colori personalizzati per sfondo, pannelli, testo, accento e stati; preferenza salvata sul dispositivo, il report PDF resta chiaro
 - **Import CSV** — riconosce da solo separatore, formato data, colonna importi (anche il formato a due colonne Uscite/Entrate degli estratti italiani) e propone una categoria per ogni riga
 - **Bot Telegram** — registra spese scrivendo un messaggio al bot (vedi sotto)
 - **PWA installabile** — icona sulla schermata Home, funziona offline dopo la prima visita
