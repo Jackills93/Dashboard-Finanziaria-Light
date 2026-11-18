@@ -249,6 +249,21 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
 .card .c-meta{font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin-top:3px;}
 .card .c-val{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:19px; font-weight:600;}
 .card .c-foot{font-size:11.5px; color:var(--faint); margin-top:8px; display:flex; justify-content:space-between; gap:8px;}
+/* carta di credito */
+.cc-box{margin-top:10px; display:flex; flex-direction:column; gap:5px;}
+.cc-bar{height:6px; border-radius:4px; background:var(--line); overflow:hidden;}
+.cc-bar span{display:block; height:100%; background:var(--accent); transition:width .3s;}
+.cc-bar span.warn{background:var(--bad);}
+.cc-line{font-size:12px; color:var(--dim); line-height:1.45;}
+.cc-line b{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums;}
+.cc-edit{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; font-size:11px; color:var(--faint); margin-top:4px;}
+.cc-edit label{display:flex; align-items:center; gap:5px; margin:0; font-size:11px; letter-spacing:0; text-transform:none;}
+.cc-edit input{width:84px; padding:4px 6px;}
+.cc-edit input.day{width:54px;}
+.cc-edit select{width:auto; max-width:150px; padding:4px 6px;}
+.cc-hint{font-size:12px; color:var(--dim); background:var(--raised); border:1px solid var(--line); border-radius:var(--r-sm); padding:9px 11px; line-height:1.45;}
+.cc-hint b{color:var(--ink);}
+.cc-hint.warn{border-color:var(--bad); color:var(--bad);}
 
 /* ---------- toast ---------- */
 /* ---------- dialogo di conferma (confirm/prompt non sono disponibili in iframe) ---------- */
@@ -512,6 +527,7 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
 .drawer .f{flex:none; min-width:0;}
 .drawer-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 .drawer-grid .f[hidden]{display:none;}
+[hidden]{display:none !important;}
 .amount-input{font-family:var(--mono); font-size:22px!important; font-weight:600; height:52px;}
 .drawer-actions{display:flex; gap:10px; margin-top:auto; padding-top:8px;}
 .drawer-actions>.b{flex:1; height:44px;}
@@ -902,14 +918,18 @@ try{
           <div class="f" style="flex:0 0 150px;"><label>Tipo</label>
             <select id="aType">
               <option value="corrente">Conto corrente</option><option value="risparmio">Risparmio</option>
-              <option value="carta">Carta</option><option value="contanti">Contanti</option>
+              <option value="carta">Carta (debito / prepagata)</option><option value="credito">Carta di credito</option><option value="contanti">Contanti</option>
               <option value="investimento">Investimento</option>
             </select>
           </div>
           <div class="f" style="flex:0 0 140px;"><label>Saldo iniziale</label><input type="number" id="aInit" step="0.01" value="0"></div>
+          <div class="f cc-only" style="flex:0 0 120px;" hidden><label for="aPlafond">Plafond</label><input type="number" id="aPlafond" step="0.01" min="0" placeholder="Es. 1500"></div>
+          <div class="f cc-only" style="flex:0 0 110px;" hidden><label for="aBillDay">Giorno addebito</label><input type="number" id="aBillDay" min="1" max="31" placeholder="Es. 15"></div>
+          <div class="f cc-only" style="flex:0 0 170px;" hidden><label for="aBillAcc">Addebito sul conto</label><select id="aBillAcc"></select></div>
           <div class="f" style="flex:0 0 76px;"><label>Colore</label><input type="color" id="aColor" value="#7BAE7E" style="padding:3px; height:35px;"></div>
           <button class="b pri" id="btnAddAcc">Aggiungi</button>
         </div>
+        <div class="note cc-only" style="margin-bottom:14px;" hidden>Le spese pagate con la carta di credito riducono il <b>plafond disponibile</b>. Nel <b>giorno di addebito</b>, il totale speso fino alla fine del mese precedente viene prelevato dal conto scelto con un giroconto automatico.</div>
         <div class="cards" id="accCards"></div>
       </div>
 
@@ -1173,6 +1193,7 @@ try{
     <div class="f" id="wFrom" hidden><label for="fFrom">Dal conto</label><select id="fFrom"></select></div>
     <div class="f" id="wTo" hidden><label for="fTo">Al conto</label><select id="fTo"></select></div>
     <div class="f"><label for="fPerson">Persona</label><select id="fPerson"></select></div>
+    <div class="cc-hint" id="fCardHint" style="grid-column:1/-1;" hidden></div>
   </div>
   <div class="drawer-actions">
     <button class="b ghost" id="btnCancelMov" hidden>Annulla</button>
@@ -1551,10 +1572,11 @@ function movsOf(month, person){
 function sumIn(list){ return list.filter(m=>m.type==='income').reduce((s,m)=>s+num(m.amount),0); }
 function sumOut(list){ return list.filter(m=>m.type==='expense').reduce((s,m)=>s+num(m.amount),0); }
 
-function accBalance(name){
+function accBalance(name, until){
   const a = S.accounts.find(x=>x.name===name);
   let b = a ? num(a.init) : 0;
   S.movements.forEach(m=>{
+    if(until && m.date > until) return;
     if(m.type==='income' && m.account===name) b += num(m.amount);
     else if(m.type==='expense' && m.account===name) b -= num(m.amount);
     else if(m.type==='transfer'){
@@ -1564,6 +1586,71 @@ function accBalance(name){
   });
   return b;
 }
+/* ---------------- carta di credito: plafond e addebito ----------------
+   Nel giorno di addebito del mese M+1 il debito della carta maturato fino
+   alla fine del mese M viene prelevato dal conto di addebito con un giroconto. */
+const ACC_TYPE_LABEL = {corrente:'conto corrente', risparmio:'risparmio', carta:'carta', credito:'carta di credito', contanti:'contanti', investimento:'investimento'};
+function isCredit(a){ return !!a && a.type === 'credito'; }
+function ccBillingSet(a){ return isCredit(a) && a.billDay && a.billAcc && S.accounts.some(x=>x.name===a.billAcc && x.name!==a.name); }
+function ccChargeDate(mk, day){
+  const n = shiftMonth(mk, 1);
+  return n + '-' + String(Math.min(day, daysInMonth(n))).padStart(2,'0');
+}
+function ccMonthEnd(mk){ return mk + '-' + String(daysInMonth(mk)).padStart(2,'0'); }
+// primo mese da addebitare: quello il cui addebito cade oggi o dopo (niente addebiti retroattivi)
+function ccFirstPeriod(day){
+  const prev = shiftMonth(curMonthKey(), -1);
+  return ccChargeDate(prev, day) >= todayISO() ? prev : curMonthKey();
+}
+function ccInfo(a, extra){
+  const used = Math.max(0, -accBalance(a.name)) + (extra || 0);
+  const plafond = num(a.plafond) > 0 ? num(a.plafond) : null;
+  const info = {used:used, plafond:plafond, avail: plafond != null ? plafond - used : null, next:null};
+  if(ccBillingSet(a) && a.nextCharge){
+    info.next = {
+      date: ccChargeDate(a.nextCharge, a.billDay),
+      amount: Math.max(0, -accBalance(a.name, ccMonthEnd(a.nextCharge))),
+      acc: a.billAcc
+    };
+  }
+  return info;
+}
+function ccChargeDateFor(a, dateIso){
+  if(!ccBillingSet(a)) return null;
+  let mk = monthKey(dateIso || todayISO());
+  if(a.nextCharge && mk < a.nextCharge) mk = a.nextCharge;
+  return ccChargeDate(mk, a.billDay);
+}
+function ccSetBilling(a){
+  a.nextCharge = ccBillingSet(a) ? ccFirstPeriod(a.billDay) : '';
+}
+function runCardCharges(){
+  const today = todayISO();
+  let made = 0;
+  S.accounts.forEach(a=>{
+    if(!ccBillingSet(a)) return;
+    if(!a.nextCharge) a.nextCharge = ccFirstPeriod(a.billDay);
+    let guard = 0;
+    while(guard++ < 120){
+      const when = ccChargeDate(a.nextCharge, a.billDay);
+      if(when > today) break;
+      const period = a.nextCharge;
+      const debt = Math.round(-accBalance(a.name, ccMonthEnd(period)) * 100) / 100;
+      if(debt >= 0.01 && !S.movements.some(m=>m.ccId === a.id && m.ccPeriod === period)){
+        const p = period.split('-');
+        S.movements.push({
+          id:uid('m'), type:'transfer', desc:'Addebito carta ' + a.name + ' (' + p[1] + '/' + p[0] + ')',
+          amount:debt, date:when, catId:'', account:'', from:a.billAcc, to:a.name, person:'',
+          ccId:a.id, ccPeriod:period
+        });
+        made++;
+      }
+      a.nextCharge = shiftMonth(period, 1);
+    }
+  });
+  return made;
+}
+
 function totalLiquid(){
   let b = S.accounts.reduce((s,a)=>s+num(a.init),0);
   S.movements.forEach(m=>{
@@ -1945,12 +2032,32 @@ function renderAccounts(){
     const b = accBalance(a.name);
     const mIn = S.movements.filter(m=>monthKey(m.date)===curMonthKey() && m.type==='income' && m.account===a.name).reduce((s,m)=>s+num(m.amount),0);
     const mOut = S.movements.filter(m=>monthKey(m.date)===curMonthKey() && m.type==='expense' && m.account===a.name).reduce((s,m)=>s+num(m.amount),0);
+    let cc = '';
+    if(isCredit(a)){
+      const ci = ccInfo(a);
+      const pct = ci.plafond ? Math.min(100, ci.used / ci.plafond * 100) : 0;
+      const bankOpts = '<option value="">— nessuno —</option>' + S.accounts.filter(x=>!isCredit(x))
+        .map(x=>'<option value="'+esc(x.name)+'"'+(x.name===a.billAcc?' selected':'')+'>'+esc(x.name)+'</option>').join('');
+      cc = '<div class="cc-box">' +
+        (ci.plafond
+          ? '<div class="cc-bar"><span class="'+(pct>=90?'warn':'')+'" style="width:'+pct+'%"></span></div>' +
+            '<div class="cc-line">Utilizzato <b>'+esc(fmt(ci.used))+'</b> · disponibile <b>'+esc(fmt(ci.avail))+'</b> su '+esc(fmt(ci.plafond))+'</div>'
+          : '<div class="cc-line">Utilizzato <b>'+esc(fmt(ci.used))+'</b> · plafond non impostato</div>') +
+        '<div class="cc-line">' + (ci.next
+          ? 'Prossimo addebito <b>'+esc(itDate(ci.next.date))+'</b> su '+esc(ci.next.acc)+' · '+(ci.next.amount>0?'<b>'+esc(fmt(ci.next.amount))+'</b>':'nessun importo finora')
+          : 'Imposta giorno e conto di addebito per registrare l’addebito in automatico') + '</div>' +
+        '<div class="cc-edit no-print">' +
+          '<label>Plafond <input type="number" step="0.01" min="0" value="'+(a.plafond||'')+'" data-ccplaf="'+a.id+'" placeholder="—"></label>' +
+          '<label>Giorno <input class="day" type="number" min="1" max="31" value="'+(a.billDay||'')+'" data-ccday="'+a.id+'" placeholder="—"></label>' +
+          '<label>Conto <select data-ccacc="'+a.id+'">'+bankOpts+'</select></label>' +
+        '</div></div>';
+    }
     return '<div class="card"><div class="c-top"><div>' +
-      '<div class="c-nm"><span class="swatch" style="background:'+a.color+'; margin-right:7px;"></span>'+esc(a.name)+'</div>' +
-      '<div class="c-meta">'+esc(a.type)+' · iniziale '+esc(fmt(num(a.init)))+'</div></div>' +
+      '<div class="c-nm"><span class="swatch" style="background:'+a.color+'; margin-right:7px;"></span>'+(isCredit(a)?'💳 ':'')+esc(a.name)+'</div>' +
+      '<div class="c-meta">'+esc(ACC_TYPE_LABEL[a.type]||a.type)+' · iniziale '+esc(fmt(num(a.init)))+'</div></div>' +
       '<button class="mini del no-print" data-accdel="'+a.id+'" title="Elimina">✕</button></div>' +
       '<div class="c-val '+(b>=0?'pos':'neg')+'">'+esc(fmt(b))+'</div>' +
-      '<div class="c-foot"><span class="pos">+'+esc(fmt(mIn))+'</span><span class="neg">−'+esc(fmt(mOut))+'</span></div></div>';
+      '<div class="c-foot"><span class="pos">+'+esc(fmt(mIn))+'</span><span class="neg">−'+esc(fmt(mOut))+'</span></div>' + cc + '</div>';
   }).join('') : '<div class="empty">Nessun conto. Aggiungine uno per vedere il patrimonio.</div>';
 
   const pl = $('#personList');
@@ -2047,7 +2154,8 @@ function renderInv(){
 function fillSelects(){
   const catOpts = t => S.categories.filter(c=>t ? c.type===t : true)
     .map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
-  const accOpts = S.accounts.map(a=>'<option value="'+esc(a.name)+'">'+esc(a.name)+'</option>').join('');
+  const accOpts = S.accounts.map(a=>'<option value="'+esc(a.name)+'">'+(isCredit(a)?'💳 ':'')+esc(a.name)+'</option>').join('');
+  const bankOpts = S.accounts.filter(a=>!isCredit(a)).map(a=>'<option value="'+esc(a.name)+'">'+esc(a.name)+'</option>').join('');
   const perOpts = S.persons.map(p=>'<option value="'+esc(p.name)+'">'+esc(p.name)+'</option>').join('');
 
   function set(sel, html, keep){
@@ -2069,6 +2177,7 @@ function fillSelects(){
   set('#rAcc', '<option value="">— nessuno —</option>' + accOpts, true);
   set('#sCat', '<option value="">— nessuna —</option>' + catOpts('expense'), true);
   set('#sAcc', '<option value="">— nessuno —</option>' + accOpts, true);
+  set('#aBillAcc', '<option value="">— nessuno —</option>' + bankOpts, true);
   set('#tFrom', accOpts, true);
   set('#tTo', accOpts, true);
   set('#impAcc', '<option value="">— nessuno —</option>' + accOpts, true);
@@ -2155,7 +2264,34 @@ function syncMovForm(){
   $('#wFrom').hidden = !isT; $('#wTo').hidden = !isT;
   $$('#fTypeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.type === t));
   fillSelects();
+  updateCardHint();
 }
+// spesa già registrata sulla carta quando si modifica un movimento (va tolta dal calcolo)
+function ccPrevSpend(a){
+  const m = editMov ? S.movements.find(x=>x.id===editMov) : null;
+  return m && m.type === 'expense' && m.account === a.name ? num(m.amount) : 0;
+}
+function updateCardHint(){
+  const h = $('#fCardHint'); if(!h) return;
+  const t = $('#fType').value;
+  const a = S.accounts.find(x=>x.name === $('#fAcc').value);
+  if(t === 'transfer' || !isCredit(a)){ h.hidden = true; return; }
+  const amount = num($('#fAmount').value);
+  const ci = ccInfo(a, t === 'expense' ? amount - ccPrevSpend(a) : 0);
+  const when = ccChargeDateFor(a, $('#fDate').value);
+  const over = t === 'expense' && ci.avail != null && ci.avail < 0;
+  const parts = ['💳 <b>Carta di credito</b>'];
+  if(ci.plafond != null) parts.push(over
+    ? 'supera il plafond di <b>'+esc(fmt(-ci.avail))+'</b> (plafond '+esc(fmt(ci.plafond))+')'
+    : 'disponibile dopo questa spesa <b>'+esc(fmt(ci.avail))+'</b> su '+esc(fmt(ci.plafond)));
+  parts.push(when ? 'addebito il <b>'+esc(itDate(when))+'</b> su '+esc(a.billAcc) : 'addebito non impostato (vai in Conti)');
+  h.innerHTML = parts.join(' · ');
+  h.classList.toggle('warn', over);
+  h.hidden = false;
+}
+$('#fAcc').addEventListener('change', updateCardHint);
+$('#fDate').addEventListener('change', updateCardHint);
+$('#fAmount').addEventListener('input', updateCardHint);
 $('#fType').addEventListener('change', syncMovForm);
 $$('#fTypeSeg button').forEach(b=>b.addEventListener('click', ()=>{
   if($('#fType').value === b.dataset.type) return;
@@ -2166,6 +2302,7 @@ function openMovDrawer(){
   closeMoreSheet();
   $('#movDrawer').classList.add('open'); $('#movDrawer').setAttribute('aria-hidden','false');
   $('#movDrawerBackdrop').classList.add('open');
+  updateCardHint();
   setTimeout(()=>$('#fAmount').focus(), 250);
 }
 function closeMovDrawer(){
@@ -2185,7 +2322,7 @@ document.addEventListener('keydown', e=>{
   closeMoreSheet();
 });
 
-$('#btnSaveMov').addEventListener('click', ()=>{
+$('#btnSaveMov').addEventListener('click', async ()=>{
   const t = $('#fType').value;
   const desc = $('#fDesc').value.trim();
   const amount = num($('#fAmount').value);
@@ -2195,6 +2332,12 @@ $('#btnSaveMov').addEventListener('click', ()=>{
   if(t === 'transfer'){
     const f = $('#fFrom').value, to = $('#fTo').value;
     if(!f || !to || f === to){ toast('Scegli due conti diversi per il giroconto.', true); return; }
+  }
+  const ccAcc = t === 'expense' ? S.accounts.find(x=>x.name === $('#fAcc').value) : null;
+  if(isCredit(ccAcc)){
+    const ci = ccInfo(ccAcc, amount - ccPrevSpend(ccAcc));
+    if(ci.avail != null && ci.avail < 0 &&
+       !await ask('Questa spesa supera il plafond della carta «' + ccAcc.name + '» di ' + fmt(-ci.avail) + '. Registrarla comunque?', {yes:'Registra'})) return;
   }
   const rec = {
     id: editMov || uid('m'), type:t, desc:desc, amount:amount, date:date,
@@ -2206,7 +2349,7 @@ $('#btnSaveMov').addEventListener('click', ()=>{
   };
   if(editMov){
     const i = S.movements.findIndex(m=>m.id===editMov);
-    if(i >= 0){ ['recId','subId','fromTg'].forEach(k=>{ if(S.movements[i][k]) rec[k] = S.movements[i][k]; }); S.movements[i] = rec; }
+    if(i >= 0){ ['recId','subId','fromTg','ccId','ccPeriod'].forEach(k=>{ if(S.movements[i][k]) rec[k] = S.movements[i][k]; }); S.movements[i] = rec; }
     toast('Movimento aggiornato.');
   }else{
     S.movements.push(rec);
@@ -2446,9 +2589,36 @@ $('#btnAddAcc').addEventListener('click', ()=>{
   const name = $('#aName').value.trim();
   if(!name){ toast('Dai un nome al conto.', true); return; }
   if(S.accounts.some(a=>a.name.toLowerCase() === name.toLowerCase())){ toast('Conto già presente.', true); return; }
-  S.accounts.push({id:uid('a'), name:name, type:$('#aType').value, init:num($('#aInit').value), color:$('#aColor').value});
+  const acc = {id:uid('a'), name:name, type:$('#aType').value, init:num($('#aInit').value), color:$('#aColor').value};
+  if(acc.type === 'credito'){
+    const day = parseInt($('#aBillDay').value, 10);
+    if(!isNaN(day) && (day < 1 || day > 31)){ toast('Il giorno di addebito va da 1 a 31.', true); return; }
+    acc.plafond = num($('#aPlafond').value) || 0;
+    acc.billDay = isNaN(day) ? 0 : day;
+    acc.billAcc = $('#aBillAcc').value;
+  }
+  S.accounts.push(acc);
+  if(acc.type === 'credito') ccSetBilling(acc);
   $('#aName').value = ''; $('#aInit').value = '0';
+  $('#aPlafond').value = ''; $('#aBillDay').value = ''; $('#aBillAcc').value = '';
   markReal(); save(); renderAll(); toast('Conto aggiunto.');
+});
+function syncAccForm(){
+  const cc = $('#aType').value === 'credito';
+  $$('#v-conti .cc-only').forEach(el=>{ el.hidden = !cc; });
+}
+$('#aType').addEventListener('change', syncAccForm);
+$('#accCards').addEventListener('change', e=>{
+  const t = e.target;
+  const id = t.dataset.ccplaf || t.dataset.ccday || t.dataset.ccacc; if(!id) return;
+  const a = S.accounts.find(x=>x.id===id); if(!a) return;
+  if(t.dataset.ccplaf){ a.plafond = num(t.value) || 0; }
+  else if(t.dataset.ccday){
+    const d = parseInt(t.value, 10);
+    if(!isNaN(d) && (d < 1 || d > 31)){ toast('Il giorno di addebito va da 1 a 31.', true); renderAll(); return; }
+    a.billDay = isNaN(d) ? 0 : d; ccSetBilling(a);
+  } else { a.billAcc = t.value; ccSetBilling(a); }
+  markReal(); save(); renderAll(); toast('Carta aggiornata.');
 });
 $('#accCards').addEventListener('click', async e=>{
   const d = e.target.closest('[data-accdel]'); if(!d) return;
@@ -3161,6 +3331,8 @@ async function subNotify(){
 }
 // controllo al rientro nella pagina e ogni 30 minuti mentre resta aperta
 function subTick(){
+  const charged = runCardCharges();
+  if(charged){ save(); renderAll(); toast(charged + (charged===1 ? ' addebito carta registrato.' : ' addebiti carta registrati.')); }
   const made = runSubscriptions();
   if(made){ markReal(); save(); renderAll(); toast(made + (made===1 ? ' abbonamento rinnovato.' : ' abbonamenti rinnovati.')); }
   else renderSubs();
@@ -3383,6 +3555,7 @@ function boot(){
   }
   const made = runRecurring();
   const renewed = runSubscriptions();
+  const charged = runCardCharges();
   $('#curSel').value = S.currency || 'EUR';
   $('#fDate').value = todayISO();
   $('#tDate').value = todayISO();
@@ -3402,7 +3575,8 @@ function boot(){
   registerSW();
   if(made) toast(made + (made===1 ? ' movimento ricorrente generato.' : ' movimenti ricorrenti generati.'));
   else if(renewed) toast(renewed + (renewed===1 ? ' abbonamento rinnovato.' : ' abbonamenti rinnovati.'));
-  if(made || renewed) save();
+  if(charged) setTimeout(()=>toast(charged + (charged===1 ? ' addebito carta registrato.' : ' addebiti carta registrati.')), made || renewed ? 2600 : 0);
+  if(made || renewed || charged) save();
   subNotify();
 }
 boot();
