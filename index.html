@@ -196,7 +196,7 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
 
 /* ---------- import ---------- */
 .drop{
-  border:1px dashed var(--line); border-radius:var(--r); padding:26px 18px; text-align:center;
+  display:block; border:1px dashed var(--line); border-radius:var(--r); padding:26px 18px; text-align:center;
   cursor:pointer; background:var(--ground); transition:border-color .15s, background .15s;
 }
 .drop:hover,.drop.over{border-color:var(--accent); background:var(--raised);}
@@ -424,6 +424,7 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
 .dash-top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
 .dash-title{margin:0; font-size:18px; font-weight:600; text-transform:capitalize; min-width:150px; text-align:center;}
 .kpi-strip.dash-kpis{grid-template-columns:repeat(4,1fr);}
+.kpi-strip.k4{grid-template-columns:repeat(4,1fr);}
 .kpi .k-sub.pos{color:var(--good);} .kpi .k-sub.neg{color:var(--bad);}
 .kpi-bar{display:flex; align-items:center; gap:10px; margin-top:8px;}
 .kpi-bar .k-sub{margin-top:0; white-space:nowrap;}
@@ -546,7 +547,7 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
 .bottom-nav,.more-sheet{display:none;}
 
 @media (max-width:900px){
-  .kpi-strip.dash-kpis{grid-template-columns:repeat(2,1fr);}
+  .kpi-strip.dash-kpis,.kpi-strip.k4{grid-template-columns:repeat(2,1fr);}
   .dash-row,.inv-grid{grid-template-columns:1fr;}
   .cat-wrap{flex-direction:column; align-items:stretch;}
   .donut{margin:0 auto;}
@@ -604,6 +605,43 @@ svg.chart{width:100%; height:100%; display:block; overflow:visible;}
   }
   .drawer.open{transform:none;}
   .pl-row{grid-template-columns:60px 1fr 88px;}
+}
+
+/* ---------- pianificazione ---------- */
+.plan-tbl td.num input{width:120px; text-align:right; font-family:var(--mono); padding:6px 8px; font-size:13px;}
+.plan-tbl .delta{font-family:var(--mono); font-size:12.5px; white-space:nowrap;}
+.plan-tbl tr.plan-total td{border-top:1px solid var(--line); border-bottom:0;}
+.plan-prog{display:flex; flex-direction:column; gap:4px; min-width:140px;}
+.plan-prog .track{height:6px;}
+.plan-prog .pace{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink); opacity:.6;}
+.plan-prog small{font-size:11px; color:var(--dim); font-family:var(--mono);}
+.bars-pair .bar.base{background:var(--info);}
+.bars-pair .bar.plan{background:var(--accent);}
+.bars-pair .bar.real{background:var(--bad);}
+.bars-pair .bar.est{opacity:.4;}
+@media (max-width:760px){
+  .plan-tbl td.num input{width:140px; font-size:16px;}
+  table.resp.plan-tbl tbody tr.plan-total{background:var(--raised);}
+  table.resp.plan-tbl tbody tr.plan-total td{border:0;}
+}
+
+/* ---------- help ---------- */
+.help-index{display:flex; flex-wrap:wrap; gap:8px;}
+.help-index .chip{padding:6px 11px; font-size:12px;}
+.help-item{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr); gap:24px; align-items:start; scroll-margin-top:16px;}
+.help-item.phone{grid-template-columns:minmax(0,1fr) 280px;}
+.help-text{font-size:14px; line-height:1.6; color:var(--dim);}
+.help-text h2{font-size:17px; font-weight:600; color:var(--ink); margin:0 0 12px; letter-spacing:-.01em;}
+.help-text b{color:var(--ink);}
+.help-text p{margin:0 0 10px;}
+.help-text ol,.help-text ul{margin:0 0 10px; padding-left:20px;}
+.help-text li{margin-bottom:6px;}
+.help-item figure{margin:0;}
+.help-item img{display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--ground);}
+.help-item figcaption{font-size:11.5px; color:var(--faint); margin-top:6px; text-align:center;}
+@media (max-width:900px){
+  .help-item,.help-item.phone{grid-template-columns:1fr;}
+  .help-item.phone figure{max-width:300px; margin:0 auto;}
 }
 
 /* ---------- tema personalizzato ---------- */
@@ -669,11 +707,13 @@ try{
     <button data-v="movimenti">Movimenti <span class="cnt" id="cntMov"></span></button>
     <button data-v="importa">Importa</button>
     <button data-v="budget">Budget</button>
+    <button data-v="pianificazione">Pianificazione</button>
     <button data-v="abbonamenti">Abbonamenti <span class="cnt" id="cntSub"></span></button>
     <button data-v="conti">Conti</button>
     <button data-v="obiettivi">Obiettivi</button>
     <button data-v="investimenti">Investimenti</button>
     <button data-v="impostazioni">Impostazioni</button>
+    <button data-v="help">Help</button>
   </nav>
 
   <!-- ================= DASHBOARD ================= -->
@@ -868,10 +908,67 @@ try{
     </div>
   </section>
 
+  <!-- ================= PIANIFICAZIONE ================= -->
+  <section class="view" id="v-pianificazione">
+    <div class="stack">
+      <div class="panel">
+        <h2>Pianificazione annuale <small>spese ed entrate previste, confrontate con quelle reali</small></h2>
+        <div class="row" style="align-items:flex-end;">
+          <div class="f" style="flex:0 0 150px;"><label for="plYear">Anno da pianificare</label><select id="plYear"></select></div>
+          <div class="f" style="flex:0 0 190px;"><label for="plBase">Benchmark (spese reali)</label><select id="plBase"></select></div>
+          <div class="f" style="flex:0 0 120px;"><label for="plPct">Ritocco %</label><input type="number" id="plPct" step="0.5" value="2" title="es. 2 = inflazione prevista"></div>
+          <button class="b pri" id="btnPlFill">Proponi dal benchmark</button>
+          <button class="b ghost" id="btnPlClear">Azzera piano</button>
+        </div>
+        <p class="muted" id="plBaseInfo" style="margin:12px 0 0;"></p>
+      </div>
+
+      <div class="kpi-strip k4">
+        <div class="kpi lead"><div class="k-lab">Uscite pianificate</div><div class="k-val mono" id="plOut">—</div><div class="k-sub" id="plOutSub">—</div></div>
+        <div class="kpi"><div class="k-lab">Uscite benchmark</div><div class="k-val mono" id="plBaseOut">—</div><div class="k-sub" id="plBaseOutSub">—</div></div>
+        <div class="kpi"><div class="k-lab">Entrate pianificate</div><div class="k-val mono pos" id="plIn">—</div><div class="k-sub" id="plInSub">—</div></div>
+        <div class="kpi"><div class="k-lab">Risparmio previsto</div><div class="k-val mono" id="plNet">—</div><div class="k-sub" id="plNetSub">—</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Uscite mese per mese <small id="plChartSub">benchmark e piano</small></h2>
+          <div class="bars-legend" id="plLegend"></div>
+        </div>
+        <div id="plBars"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Uscite per categoria <small>importi annui: scrivi il previsto, il mensile si calcola da solo</small></h2>
+        <div class="tbl-wrap">
+          <table class="resp plan-tbl">
+            <thead id="plHeadOut"></thead>
+            <tbody id="plBodyOut"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Entrate per categoria <small>servono a stimare il risparmio dell'anno</small></h2>
+        <div class="tbl-wrap">
+          <table class="resp plan-tbl">
+            <thead id="plHeadIn"></thead>
+            <tbody id="plBodyIn"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="note">
+        <p><b>Come funziona.</b> Il benchmark sono le spese realmente registrate nel periodo scelto, riportate a 12 mesi: se hai solo 4 mesi di dati, la media mensile viene moltiplicata per 12. «Proponi dal benchmark» riempie il piano con quei valori più il ritocco percentuale (per esempio l'inflazione), poi correggi categoria per categoria.</p>
+        <p>Quando l'anno pianificato arriva, compare la colonna <b>Reale</b> con quanto hai speso finora e una barra che confronta l'andamento con il piano.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= ABBONAMENTI ================= -->
   <section class="view" id="v-abbonamenti">
     <div class="stack">
-      <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr);">
+      <div class="kpi-strip k4">
         <div class="kpi lead"><div class="k-lab">Costo mensile</div><div class="k-val mono" id="sMonth">—</div><div class="k-sub">annuali divisi per 12</div></div>
         <div class="kpi"><div class="k-lab">Costo annuo</div><div class="k-val mono" id="sYear">—</div><div class="k-sub">mensili × 12 + annuali</div></div>
         <div class="kpi"><div class="k-lab">Attivi</div><div class="k-val mono" id="sCnt">—</div><div class="k-sub" id="sCntSub">—</div></div>
@@ -975,7 +1072,7 @@ try{
   <!-- ================= INVESTIMENTI ================= -->
   <section class="view" id="v-investimenti">
     <div class="stack">
-      <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr);">
+      <div class="kpi-strip k4">
         <div class="kpi lead"><div class="k-lab">Valore portafoglio</div><div class="k-val mono" id="iVal">—</div><div class="k-sub" id="iValSub">—</div></div>
         <div class="kpi"><div class="k-lab">Investito</div><div class="k-val mono" id="iCost">—</div><div class="k-sub">somma dei prezzi medi</div></div>
         <div class="kpi"><div class="k-lab">Utile / perdita</div><div class="k-val mono" id="iPl">—</div><div class="k-sub" id="iPlSub">—</div></div>
@@ -1023,6 +1120,144 @@ try{
             </table>
           </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ================= HELP ================= -->
+  <section class="view" id="v-help">
+    <div class="stack">
+      <div class="panel">
+        <h2>Help e tutorial <small>come usare Bilancio Domestico, passo per passo</small></h2>
+        <p class="muted" style="margin:0 0 12px;">Tutto funziona nel browser, senza account e senza server: i dati restano su questo dispositivo. Scegli un argomento.</p>
+        <div class="help-index"><button class="chip cl" data-help="primi-passi">Primi passi</button><button class="chip cl" data-help="movimento">Registrare un movimento</button><button class="chip cl" data-help="movimenti">Cercare e filtrare i movimenti</button><button class="chip cl" data-help="importa">Importare un estratto conto</button><button class="chip cl" data-help="budget">Budget e spese ricorrenti</button><button class="chip cl" data-help="pianificazione">Pianificare l'anno</button><button class="chip cl" data-help="abbonamenti">Abbonamenti e promemoria</button><button class="chip cl" data-help="conti">Conti e carte di credito</button><button class="chip cl" data-help="impostazioni">Backup, tema e Telegram</button><button class="chip cl" data-help="telefono">Usarla sul telefono</button></div>
+      </div>
+
+      <div class="panel help-item" id="help-primi-passi">
+        <div class="help-text">
+          <h2>1. Primi passi</h2>
+          <p>Alla prima apertura trovi un bilancio di esempio, per vedere com'è l'app quando è piena.</p>
+<ol>
+  <li>Premi <b>Svuota e inizia da zero</b> nel banner giallo: restano solo le categorie.</li>
+  <li>In <b>Conti</b> aggiungi i tuoi conti con il saldo di oggi.</li>
+  <li>In <b>Budget</b> sistema le categorie e i limiti mensili.</li>
+  <li>Da qui in poi la <b>Dashboard</b> mostra saldo, entrate e uscite del mese, gli ultimi 6 mesi, le prossime scadenze e le spese per categoria. Con ◀ ▶ cambi mese, con i pulsanti in alto a destra filtri per persona.</li>
+</ol>
+        </div>
+        <figure><img src="help/01-dashboard.jpg" alt="La dashboard con i dati di esempio" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>La dashboard con i dati di esempio</figcaption></figure>
+      </div>
+
+      <div class="panel help-item phone" id="help-movimento">
+        <div class="help-text">
+          <h2>2. Registrare un movimento</h2>
+          <ol>
+  <li>Premi <b>+ Movimento</b> in alto (su telefono il <b>+</b> nella barra in basso).</li>
+  <li>Scegli <b>Uscita</b>, <b>Entrata</b> o <b>Giroconto</b>, scrivi importo e descrizione.</li>
+  <li>Categoria, conto, data e persona sono facoltativi ma rendono utili grafici e budget.</li>
+  <li>Premi <b>Aggiungi</b>. Per correggere un movimento toccalo nell'elenco: si riapre lo stesso pannello, con <b>Elimina</b>.</li>
+</ol>
+<p>Se paghi con una carta di credito il pannello mostra plafond disponibile e data di addebito.</p>
+        </div>
+        <figure><img src="help/02-movimento.jpg" alt="Il pannello Nuovo movimento su telefono" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>Il pannello Nuovo movimento su telefono</figcaption></figure>
+      </div>
+
+      <div class="panel help-item" id="help-movimenti">
+        <div class="help-text">
+          <h2>3. Cercare e filtrare i movimenti</h2>
+          <ul>
+  <li>I movimenti sono raggruppati per mese, con entrate, uscite e saldo del mese.</li>
+  <li>La ricerca guarda descrizione, categoria, conto e persona. <b>Filtri</b> apre categoria, conto, persona, tipo e date.</li>
+  <li>Il riepilogo sopra l'elenco somma solo quello che vedi; <b>CSV</b> esporta proprio quei movimenti.</li>
+</ul>
+        </div>
+        <figure><img src="help/03-movimenti.jpg" alt="L'elenco dei movimenti con i filtri aperti" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>L'elenco dei movimenti con i filtri aperti</figcaption></figure>
+      </div>
+
+      <div class="panel help-item" id="help-importa">
+        <div class="help-text">
+          <h2>4. Importare un estratto conto</h2>
+          <ol>
+  <li>Scarica il CSV dal tuo home banking, oppure copia le righe della lista movimenti.</li>
+  <li>In <b>Importa</b> trascina il file o incolla il testo e premi <b>Analizza righe</b>.</li>
+  <li>Controlla l'anteprima: separatore, date e importi sono riconosciuti da soli, e ogni riga ha già una categoria proposta che puoi cambiare.</li>
+  <li>Le righe già presenti sono segnalate come doppioni. Premi <b>Importa i selezionati</b> per confermare.</li>
+</ol>
+        </div>
+        <figure><img src="help/04-importa.jpg" alt="Anteprima di un estratto conto importato" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>Anteprima di un estratto conto importato</figcaption></figure>
+      </div>
+
+      <div class="panel help-item" id="help-budget">
+        <div class="help-text">
+          <h2>5. Budget e spese ricorrenti</h2>
+          <ul>
+  <li>Ogni categoria di uscita può avere un <b>limite mensile</b>: in dashboard vedi quanto ne hai usato e quali categorie lo superano.</li>
+  <li>Le <b>ricorrenti</b> (mutuo, stipendio, affitto…) si registrano da sole ogni mese nel giorno scelto. Con ⏸ le sospendi.</li>
+</ul>
+        </div>
+        <figure><img src="help/05-budget.jpg" alt="Categorie con limiti mensili e spese ricorrenti" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>Categorie con limiti mensili e spese ricorrenti</figcaption></figure>
+      </div>
+
+      <div class="panel help-item" id="help-pianificazione">
+        <div class="help-text">
+          <h2>6. Pianificare l'anno</h2>
+          <ol>
+  <li>In <b>Pianificazione</b> scegli l'anno da pianificare e il <b>benchmark</b>: gli ultimi 12 mesi o un anno intero di spese reali.</li>
+  <li>Premi <b>Proponi dal benchmark</b>: ogni categoria riceve la spesa reale annua più il <b>ritocco %</b> (per esempio l'inflazione).</li>
+  <li>Correggi le singole categorie nella colonna <b>Previsto / anno</b>: scostamento, mensile e risparmio previsto si aggiornano subito.</li>
+  <li>Quando l'anno arriva compare la colonna <b>Reale</b>: la barra mostra quanto hai speso, la tacca dove dovresti essere oggi.</li>
+</ol>
+<p>Se hai pochi mesi di dati il benchmark usa la media mensile × 12. Nel grafico, le barre chiare sono i mesi stimati.</p>
+        </div>
+        <figure><img src="help/06-pianificazione.jpg" alt="La pianificazione dell'anno prossimo confrontata con le spese reali" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>La pianificazione dell'anno prossimo confrontata con le spese reali</figcaption></figure>
+      </div>
+
+      <div class="panel help-item" id="help-abbonamenti">
+        <div class="help-text">
+          <h2>7. Abbonamenti e promemoria</h2>
+          <ul>
+  <li>Aggiungi ogni abbonamento con importo, periodicità (mensile o annuale) e data del prossimo rinnovo.</li>
+  <li>Alla scadenza si rinnova da solo e, se lo lasci spuntato, registra l'uscita tra i movimenti.</li>
+  <li>Con il bot Telegram configurato ricevi un promemoria 3 giorni prima del rinnovo. Lo elimini quando lo disdici.</li>
+</ul>
+        </div>
+        <figure><img src="help/07-abbonamenti.jpg" alt="Gli abbonamenti con il prossimo rinnovo" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>Gli abbonamenti con il prossimo rinnovo</figcaption></figure>
+      </div>
+
+      <div class="panel help-item" id="help-conti">
+        <div class="help-text">
+          <h2>8. Conti e carte di credito</h2>
+          <ul>
+  <li>Il saldo di ogni conto è il saldo iniziale più i movimenti: non va aggiornato a mano.</li>
+  <li>Per una <b>carta di credito</b> indica plafond, giorno di addebito e conto da cui viene addebitata. La scheda mostra utilizzato, disponibile e prossimo addebito; nel giorno di addebito il saldo viene trasferito con un giroconto automatico.</li>
+  <li><b>Giroconto</b> sposta denaro tra due conti senza contarlo come spesa. In <b>Persone</b> aggiungi chi condivide il bilancio.</li>
+</ul>
+        </div>
+        <figure><img src="help/08-conti.jpg" alt="Conti e carta di credito con plafond e addebito" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>Conti e carta di credito con plafond e addebito</figcaption></figure>
+      </div>
+
+      <div class="panel help-item" id="help-impostazioni">
+        <div class="help-text">
+          <h2>9. Backup, tema e Telegram</h2>
+          <ul>
+  <li><b>Backup:</b> i dati vivono solo in questo browser. <b>Genera backup → Scarica file .json</b> ogni tanto, e sempre prima di cambiare dispositivo. <b>Ripristina</b> lo ricarica, anche su un altro telefono.</li>
+  <li><b>Tema e colori:</b> scegli un tema pronto o i tuoi colori. Vale solo per questo dispositivo.</li>
+  <li><b>Bot Telegram:</b> incolla il token di @BotFather, scrivi <code>/start</code> al bot e premi <b>Sincronizza ora</b>. Poi puoi registrare spese scrivendo <code>25,50 Spesa Coop #Alimentari</code>.</li>
+</ul>
+        </div>
+        <figure><img src="help/09-impostazioni.jpg" alt="Il pannello Tema e colori nelle Impostazioni" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>Il pannello Tema e colori nelle Impostazioni</figcaption></figure>
+      </div>
+
+      <div class="panel help-item phone" id="help-telefono">
+        <div class="help-text">
+          <h2>10. Usarla sul telefono</h2>
+          <ul>
+  <li><b>iPhone:</b> apri il link in Safari, tocca Condividi ⬆ e <b>Aggiungi alla schermata Home</b>. Così i dati non vengono cancellati da Safari dopo 7 giorni.</li>
+  <li><b>Android:</b> premi <b>⤓ Installa</b> in alto, oppure menu ⋮ → Installa app.</li>
+  <li>In basso trovi Home, Movimenti, <b>+</b>, Abbonamenti e <b>Altro</b> con tutte le altre sezioni.</li>
+</ul>
+        </div>
+        <figure><img src="help/10-mobile.jpg" alt="La dashboard su telefono con la barra in basso" loading="lazy" onerror="this.closest('figure').hidden=true"><figcaption>La dashboard su telefono con la barra in basso</figcaption></figure>
+      </div>
+
     </div>
   </section>
 
@@ -1213,11 +1448,13 @@ try{
 <div class="drawer-backdrop no-print" id="moreBackdrop"></div>
 <div class="more-sheet no-print" id="moreSheet" role="menu" aria-hidden="true">
   <button role="menuitem" data-more="budget">Budget</button>
+  <button role="menuitem" data-more="pianificazione">Pianificazione</button>
   <button role="menuitem" data-more="conti">Conti</button>
   <button role="menuitem" data-more="obiettivi">Obiettivi</button>
   <button role="menuitem" data-more="investimenti">Investimenti</button>
   <button role="menuitem" data-more="importa">Importa CSV</button>
   <button role="menuitem" data-more="impostazioni">Impostazioni e backup</button>
+  <button role="menuitem" data-more="help">Help e tutorial</button>
   <button role="menuitem" id="morePrint">Report PDF</button>
 </div>
 
@@ -1248,7 +1485,7 @@ function blank(){
   return {
     v:1, currency:'EUR', demo:false,
     persons:[], accounts:[], categories:[], movements:[],
-    recurring:[], subscriptions:[], goals:[], investments:[],
+    recurring:[], subscriptions:[], goals:[], investments:[], plans:{},
     tgToken:'', tgAcc:'', tgOffset:0, tgAuto:false, tgLog:[],
     tgChatId:'', tgSubNotify:true
   };
@@ -1984,6 +2221,221 @@ function renderBudget(){
   }).join('') : '<tr><td colspan="7" class="empty">Nessuna ricorrenza. Mutuo, abbonamenti e stipendio si registrano da soli.</td></tr>';
 }
 
+/* ---------------- pianificazione annuale ---------------- */
+// Piano: S.plans[anno][categoria] = importo annuo previsto. Il benchmark sono le
+// uscite/entrate reali del periodo scelto, riportate a 12 mesi (media × 12).
+const PL_NOEXP = '__noexp', PL_NOINC = '__noinc';
+let plYear = String(new Date().getFullYear() + 1);
+let plBase = 'last12';
+
+function plCatKey(m){
+  const c = cat(m.catId);
+  if(c) return c.id;
+  return m.type === 'income' ? PL_NOINC : PL_NOEXP;
+}
+// mesi del periodo di benchmark: solo mesi conclusi (il mese in corso è parziale)
+function plBaseMonths(base){
+  const cur = curMonthKey();
+  let months = [];
+  if(base === 'last12') for(let i = 12; i >= 1; i--) months.push(shiftMonth(cur, -i));
+  else for(let i = 1; i <= 12; i++){ const k = base + '-' + String(i).padStart(2,'0'); if(k < cur) months.push(k); }
+  const has = k => S.movements.some(m=>monthKey(m.date) === k && m.type !== 'transfer');
+  if(!months.some(has) && base === 'last12') months = [cur];   // primo mese d'uso: meglio di niente
+  return months;
+}
+function plBench(base){
+  const months = plBaseMonths(base);
+  const set = {}; months.forEach(k=>set[k] = 1);
+  const byCat = {}, byMonth = {}, dataM = {};
+  S.movements.forEach(m=>{
+    const k = monthKey(m.date);
+    if(!set[k] || m.type === 'transfer') return;
+    dataM[k] = 1;
+    const key = plCatKey(m);
+    byCat[key] = (byCat[key]||0) + num(m.amount);
+    if(m.type === 'expense') byMonth[k.slice(5)] = (byMonth[k.slice(5)]||0) + num(m.amount);
+  });
+  const n = Object.keys(dataM).length;
+  const f = n ? 12 / n : 0;
+  const ann = {}; Object.keys(byCat).forEach(k=>ann[k] = byCat[k] * f);
+  return {months:months, n:n, ann:ann, byMonth:byMonth, dataM:dataM};
+}
+function plActual(year){
+  const by = {}, byMonth = {};
+  S.movements.forEach(m=>{
+    if(m.type === 'transfer' || (m.date||'').slice(0,4) !== year) return;
+    const key = plCatKey(m);
+    by[key] = (by[key]||0) + num(m.amount);
+    if(m.type === 'expense') byMonth[m.date.slice(5,7)] = (byMonth[m.date.slice(5,7)]||0) + num(m.amount);
+  });
+  return {by:by, byMonth:byMonth};
+}
+// quota dell'anno trascorsa (0 per anni futuri, 1 per anni passati)
+function plElapsed(year){
+  const y = parseInt(year,10), now = new Date(), cy = now.getFullYear();
+  if(y > cy) return 0;
+  if(y < cy) return 1;
+  const start = new Date(cy,0,1), end = new Date(cy+1,0,1);
+  return (now - start) / (end - start);
+}
+function plRows(type, bench, plan){
+  const isOut = type === 'expense';
+  const rows = S.categories.filter(c=>c.type === type).map(c=>({key:c.id, name:c.name, color:c.color}));
+  const none = isOut ? PL_NOEXP : PL_NOINC;
+  if((bench.ann[none]||0) > 0 || num(plan[none]) > 0) rows.push({key:none, name:'Senza categoria', color:'#948B80'});
+  return rows;
+}
+function plFillSelects(){
+  const cy = new Date().getFullYear();
+  const years = {}; [cy, cy+1, cy+2].forEach(y=>years[y] = 1);
+  Object.keys(S.plans||{}).forEach(y=>years[y] = 1);
+  $('#plYear').innerHTML = Object.keys(years).sort().map(y=>'<option value="'+y+'">'+y+(+y===cy?' (in corso)':'')+'</option>').join('');
+  $('#plYear').value = plYear;
+  const dataYears = {};
+  S.movements.forEach(m=>{ if(m.date) dataYears[m.date.slice(0,4)] = 1; });
+  $('#plBase').innerHTML = '<option value="last12">Ultimi 12 mesi</option>' +
+    Object.keys(dataYears).sort().reverse().map(y=>'<option value="'+y+'">Anno '+y+(+y===cy?' (finora)':'')+'</option>').join('');
+  if(plBase !== 'last12' && !dataYears[plBase]) plBase = 'last12';
+  $('#plBase').value = plBase;
+}
+function plDelta(planV, benchV, higherGood){
+  if(!planV && !benchV) return '<span class="muted">—</span>';
+  if(!benchV) return '<span class="delta muted">nuovo</span>';
+  const d = planV - benchV, p = Math.round(d / benchV * 100);
+  if(!planV) return '<span class="delta muted">non pianificato</span>';
+  const cls = Math.abs(p) < 2 ? 'muted' : ((d > 0) === !!higherGood ? 'pos' : 'neg');
+  return '<span class="delta '+cls+'">'+(d>=0?'+':'−')+esc(fmt(Math.abs(d)))+' · '+(p>=0?'+':'')+p+'%</span>';
+}
+function plProgress(actualV, planV, elapsed, isOut){
+  if(!planV) return actualV ? '<span class="mono">'+esc(fmt(actualV))+'</span>' : '<span class="muted">—</span>';
+  const r = actualV / planV;
+  const color = !isOut ? 'var(--good)' : (r > 1 ? 'var(--bad)' : (r > elapsed + 0.05 ? 'var(--warn)' : 'var(--good)'));
+  return '<div class="plan-prog"><div class="track"><div class="fill" style="width:'+Math.min(100, r*100).toFixed(1)+'%; background:'+color+'"></div>' +
+    (elapsed > 0 && elapsed < 1 ? '<span class="pace" style="left:'+(elapsed*100).toFixed(1)+'%" title="dove dovresti essere oggi"></span>' : '') + '</div>' +
+    '<small>'+esc(fmt(actualV))+' · '+Math.round(r*100)+'% del piano</small></div>';
+}
+function renderPlanTable(type, bench, plan, actual, elapsed){
+  const isOut = type === 'expense';
+  const showReal = elapsed > 0;
+  const rows = plRows(type, bench, plan);
+  const head = isOut ? '#plHeadOut' : '#plHeadIn', body = isOut ? '#plBodyOut' : '#plBodyIn';
+  $(head).innerHTML = '<tr><th>Categoria</th><th style="text-align:right;">Benchmark / anno</th><th style="text-align:right;">Benchmark / mese</th>' +
+    '<th style="text-align:right;">Previsto / anno</th><th style="text-align:right;">Previsto / mese</th><th>Scostamento</th>' +
+    (showReal ? '<th>Reale '+esc(plYear)+'</th>' : '') + '</tr>';
+  if(!rows.length){
+    $(body).innerHTML = '<tr><td colspan="7" class="empty">Nessuna categoria di '+(isOut?'uscita':'entrata')+'. Creale nella sezione Budget.</td></tr>';
+    return;
+  }
+  let tb = 0, tp = 0, ta = 0;
+  const html = rows.map(r=>{
+    const b = bench.ann[r.key]||0, pv = num(plan[r.key]), a = actual.by[r.key]||0;
+    tb += b; tp += pv; ta += a;
+    return '<tr><td data-label="Categoria"><span class="nm" style="display:inline-flex; align-items:center; gap:7px;"><span class="swatch" style="background:'+r.color+'"></span>'+esc(r.name)+'</span></td>' +
+      '<td data-label="Benchmark / anno" class="num">'+(b?esc(fmt(b)):'<span class="muted">—</span>')+'</td>' +
+      '<td data-label="Benchmark / mese" class="num muted">'+(b?esc(fmt(b/12)):'—')+'</td>' +
+      '<td data-label="Previsto / anno" class="num"><input type="number" min="0" step="10" inputmode="decimal" data-plan="'+r.key+'" value="'+(pv?Math.round(pv*100)/100:'')+'" placeholder="'+(b?Math.round(b):'0')+'" aria-label="Previsto annuo per '+esc(r.name)+'"></td>' +
+      '<td data-label="Previsto / mese" class="num">'+(pv?esc(fmt(pv/12)):'<span class="muted">—</span>')+'</td>' +
+      '<td data-label="Scostamento">'+plDelta(pv, b, !isOut)+'</td>' +
+      (showReal ? '<td data-label="Reale '+esc(plYear)+'">'+plProgress(a, pv, elapsed, isOut)+'</td>' : '') + '</tr>';
+  }).join('');
+  $(body).innerHTML = html + '<tr class="plan-total"><td data-label=""><b>Totale</b></td><td data-label="Benchmark / anno" class="num"><b>'+esc(fmt(tb))+'</b></td><td data-label="Benchmark / mese" class="num muted">'+esc(fmt(tb/12))+'</td>' +
+    '<td data-label="Previsto / anno" class="num"><b>'+esc(fmt(tp))+'</b></td><td data-label="Previsto / mese" class="num">'+esc(fmt(tp/12))+'</td><td data-label="Scostamento">'+plDelta(tp, tb, !isOut)+'</td>' +
+    (showReal ? '<td data-label="Reale '+esc(plYear)+'"><b class="mono">'+esc(fmt(ta))+'</b></td>' : '') + '</tr>';
+}
+function planTotals(type, bench, plan){
+  let b = 0, p = 0;
+  plRows(type, bench, plan).forEach(r=>{ b += bench.ann[r.key]||0; p += num(plan[r.key]); });
+  return {b:b, p:p};
+}
+function renderPlan(){
+  if(!S.plans) S.plans = {};
+  plFillSelects();
+  const plan = S.plans[plYear] || {};
+  const bench = plBench(plBase);
+  const actual = plActual(plYear);
+  const elapsed = plElapsed(plYear);
+  const out = planTotals('expense', bench, plan), inc = planTotals('income', bench, plan);
+
+  const first = bench.months[0], last = bench.months[bench.months.length-1];
+  $('#plBaseInfo').innerHTML = bench.n
+    ? 'Benchmark: <b>'+esc(monthLabel(first))+' – '+esc(monthLabel(last))+'</b>, '+bench.n+(bench.n===1?' mese':' mesi')+' con movimenti' +
+      (bench.n < 12 ? ' — valori riportati a 12 mesi (media mensile × 12).' : '.')
+    : 'Nessun movimento nel periodo di benchmark: puoi comunque scrivere il piano a mano.';
+
+  $('#plOut').textContent = fmt(out.p);
+  $('#plOutSub').innerHTML = out.p ? esc(fmt(out.p/12)) + ' al mese' + (out.b ? ' · ' + plDelta(out.p, out.b) : '') : 'scrivi il piano o premi «Proponi»';
+  $('#plBaseOut').textContent = fmt(out.b);
+  $('#plBaseOutSub').textContent = out.b ? fmt(out.b/12) + ' al mese' : '—';
+  $('#plIn').textContent = fmt(inc.p);
+  $('#plInSub').textContent = inc.b ? 'benchmark ' + fmt(inc.b) : '—';
+  const net = inc.p - out.p;
+  $('#plNet').textContent = (net<0?'−':'') + fmt(Math.abs(net));
+  $('#plNet').className = 'k-val mono ' + (net < 0 ? 'neg' : (net > 0 ? 'pos' : ''));
+  $('#plNetSub').textContent = inc.p > 0 ? 'tasso di risparmio ' + Math.round(net / inc.p * 100) + '%' : 'aggiungi le entrate previste';
+
+  renderPlanTable('expense', bench, plan, actual, elapsed);
+  renderPlanTable('income', bench, plan, actual, elapsed);
+  renderPlanBars(bench, out, actual, elapsed);
+}
+// 12 mesi: benchmark del mese (o stima dalla media se manca), piano mensile, reale dell'anno pianificato
+function renderPlanBars(bench, out, actual, elapsed){
+  const avg = bench.n ? Object.keys(bench.byMonth).reduce((t,k)=>t+bench.byMonth[k],0) / bench.n : 0;
+  const realM = Object.keys(bench.dataM).map(k=>k.slice(5));
+  const showReal = elapsed > 0;
+  const months = [];
+  for(let i = 1; i <= 12; i++){
+    const mm = String(i).padStart(2,'0');
+    const has = realM.indexOf(mm) >= 0;
+    months.push({mm:mm, base: has ? (bench.byMonth[mm]||0) : avg, est:!has, plan: out.p/12, real: actual.byMonth[mm]||0});
+  }
+  const max = Math.max.apply(null, months.map(m=>Math.max(m.base, m.plan, showReal ? m.real : 0)).concat([1]));
+  const mag = Math.pow(10, Math.floor(Math.log10(max)));
+  const top = Math.ceil(max / mag) * mag;
+  const ax = v => v.toLocaleString('it-IT', {maximumFractionDigits:0});
+  $('#plLegend').innerHTML = '<span><i style="background:var(--info)"></i>Benchmark</span><span><i style="background:var(--accent)"></i>Previsto</span>' +
+    (showReal ? '<span><i style="background:var(--bad)"></i>Reale '+esc(plYear)+'</span>' : '');
+  $('#plChartSub').textContent = 'barre chiare = mese senza dati, stimato dalla media';
+  $('#plBars').innerHTML = '<div class="bars-chart">' +
+    '<div class="bars-y"><span>'+ax(top)+'</span><span>'+ax(top/2)+'</span><span>0</span></div>' +
+    '<div class="bars-plot">' + months.map(m=>{
+      const lbl = new Date(2000, parseInt(m.mm,10)-1, 1).toLocaleDateString('it-IT',{month:'short'}).replace('.','');
+      return '<div class="bars-col" title="'+esc(lbl)+': benchmark '+esc(fmt(m.base))+(m.est?' (stima)':'')+', previsto '+esc(fmt(m.plan))+(showReal?', reale '+esc(fmt(m.real)):'')+'">' +
+        '<div class="bars-pair"><div class="bar base'+(m.est?' est':'')+'" style="height:'+(m.base/top*100)+'%"></div>' +
+        '<div class="bar plan" style="height:'+(m.plan/top*100)+'%"></div>' +
+        (showReal ? '<div class="bar real" style="height:'+(m.real/top*100)+'%"></div>' : '') + '</div>' +
+        '<span class="bars-lbl">'+esc(lbl)+'</span></div>';
+    }).join('') + '</div></div>';
+}
+$('#plYear').addEventListener('change', function(){ plYear = this.value; renderPlan(); });
+$('#plBase').addEventListener('change', function(){ plBase = this.value; renderPlan(); });
+['#plBodyOut','#plBodyIn'].forEach(sel=>$(sel).addEventListener('change', e=>{
+  const k = e.target.dataset && e.target.dataset.plan; if(!k) return;
+  const v = num(e.target.value);
+  S.plans[plYear] = S.plans[plYear] || {};
+  if(v > 0) S.plans[plYear][k] = Math.round(v*100)/100; else delete S.plans[plYear][k];
+  markReal(); save(); renderPlan();
+}));
+$('#btnPlFill').addEventListener('click', async ()=>{
+  const bench = plBench(plBase);
+  if(!bench.n){ toast('Nel periodo di benchmark non ci sono movimenti da cui partire.', true); return; }
+  const pct = num($('#plPct').value);
+  const cur = S.plans[plYear] || {};
+  if(Object.keys(cur).length && !await confirmIt('Sostituisco il piano ' + plYear + ' con i valori del benchmark' + (pct ? ' ' + (pct>0?'+':'') + pct + '%' : '') + '?', 'Sostituisci')) return;
+  const plan = {};
+  ['expense','income'].forEach(t=>plRows(t, bench, {}).forEach(r=>{
+    const b = bench.ann[r.key]||0;
+    if(b > 0) plan[r.key] = Math.round(b * (1 + pct/100));
+  }));
+  S.plans[plYear] = plan;
+  markReal(); save(); renderPlan();
+  toast('Piano ' + plYear + ' proposto dal benchmark' + (pct ? ' ' + (pct>0?'+':'') + pct + '%' : '') + '. Ora correggi le singole categorie.');
+});
+$('#btnPlClear').addEventListener('click', async ()=>{
+  if(!S.plans[plYear] || !Object.keys(S.plans[plYear]).length){ toast('Il piano ' + plYear + ' è già vuoto.'); return; }
+  if(!await confirmIt('Azzero il piano ' + plYear + '?')) return;
+  delete S.plans[plYear]; save(); renderPlan(); toast('Piano ' + plYear + ' azzerato.');
+});
+
 /* ---------------- render: abbonamenti ---------------- */
 function whenTxt(n){
   return n <= 0 ? 'oggi' : (n === 1 ? 'domani' : 'tra ' + n + ' giorni');
@@ -2193,6 +2645,7 @@ function renderAll(){
   renderMovs();
   renderBudget();
   renderSubs();
+  renderPlan();
   renderAccounts();
   renderGoals();
   renderInv();
@@ -2215,6 +2668,11 @@ function show(v){
   $$('[data-bnav]').forEach(b=>b.classList.toggle('on', b.dataset.bnav === bn));
   window.scrollTo({top:0, behavior:'instant'});
 }
+$('#v-help').addEventListener('click', e=>{
+  const b = e.target.closest('[data-help]'); if(!b) return;
+  const el = document.getElementById('help-' + b.dataset.help);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+});
 $('#tabs').addEventListener('click', e=>{
   const b = e.target.closest('button[data-v]'); if(b) show(b.dataset.v);
 });
@@ -2816,9 +3274,14 @@ function guessCat(desc, wantType){
   const d = (desc||'').toLowerCase();
   for(let i = 0; i < KEYWORDS.length; i++){
     if(KEYWORDS[i][0].test(d)){
+      // l'indizio deve aprire una parola del nome (altrimenti «sport» trova «Trasporti»),
+      // e gli indizi valgono nell'ordine in cui sono scritti
       const hints = KEYWORDS[i][1];
-      const c = S.categories.find(x=>x.type === wantType && hints.some(h=>x.name.toLowerCase().indexOf(h) >= 0));
-      if(c) return c.id;
+      for(let j = 0; j < hints.length; j++){
+        const re = new RegExp('(^|[^a-zà-ÿ])' + hints[j]);
+        const c = S.categories.find(x=>x.type === wantType && re.test(x.name.toLowerCase()));
+        if(c) return c.id;
+      }
     }
   }
   return '';
@@ -2857,7 +3320,11 @@ function analyze(text){
   let header = null;
   if(grid.length && !parseDateCell(grid[0][dateCol.c] || '')) header = grid[0].map(h=>(h||'').toLowerCase());
 
-  let numCols = stats.filter(s=>s.c !== dateCol.c && s.filled > 0 && s.nums / Math.max(1,s.filled) >= 0.6)
+  // la cella d'intestazione non conta: con una sola entrata nel mese la colonna «Entrate»
+  // risulterebbe numerica solo al 50% e verrebbe scartata
+  const bodyFilled = st => st.filled - (header && (header[st.c]||'').trim() && parseAmountCell(header[st.c]) === null ? 1 : 0);
+  const namedAmount = st => header && st.nums > 0 && (OUT_HEAD.test(header[st.c]||'') || IN_HEAD.test(header[st.c]||''));
+  let numCols = stats.filter(s=>s.c !== dateCol.c && s.filled > 0 && (s.nums / Math.max(1, bodyFilled(s)) >= 0.6 || namedAmount(s)))
     .filter(s=>!(header && SKIP_HEAD.test(header[s.c] || '') && !OUT_HEAD.test(header[s.c]||'') && !IN_HEAD.test(header[s.c]||'')));
   if(!numCols.length) return {rows:[], info:'Non ho trovato una colonna con gli importi.'};
   numCols.sort((a,b)=>b.nums - a.nums);
@@ -3076,6 +3543,7 @@ $('#btnRestore').addEventListener('click', async ()=>{
     const keyOf = m => m.date + '|' + num(m.amount).toFixed(2) + '|' + (m.desc||'').toLowerCase();
     const have = {};
     S.movements.forEach(m=>have[keyOf(m)] = 1);
+    Object.keys(p.plans||{}).forEach(y=>{ S.plans = S.plans || {}; if(!S.plans[y]) S.plans[y] = p.plans[y]; });
     ['categories','accounts','persons','goals','investments','recurring','subscriptions'].forEach(k=>{
       (p[k]||[]).forEach(it=>{
         const same = (S[k]||[]).some(x=>(x.name||'').toLowerCase() === (it.name||'').toLowerCase() ||

@@ -1,6 +1,6 @@
 # Dashboard Finanziaria Light
 
-App di gestione finanze personali in un **unico file HTML**, senza backend: dashboard, movimenti, budget per categoria, conti, obiettivi di risparmio, investimenti e import di estratti conto CSV. I dati restano sempre e solo nel browser di chi la usa (`localStorage`) — niente server, niente database, niente account.
+App di gestione finanze personali in un **unico file HTML**, senza backend: dashboard, movimenti, budget per categoria, pianificazione annuale, abbonamenti, conti e carte di credito, obiettivi di risparmio, investimenti e import di estratti conto CSV, con un tutorial integrato. I dati restano sempre e solo nel browser di chi la usa (`localStorage`) — niente server, niente database, niente account.
 
 **➡️ Usala qui: https://jackills93.github.io/Dashboard-Finanziaria-Light/**
 
@@ -11,6 +11,9 @@ Versione "leggera" e standalone di [Personal-Finance](https://github.com/Jackill
 ## Indice
 
 - [Funzionalità](#funzionalità)
+- [Screenshot](#screenshot)
+- [Pianificazione annuale](#pianificazione-annuale)
+- [Help e tutorial](#help-e-tutorial)
 - [Installarla sul telefono](#installarla-sul-telefono)
 - [Importare un estratto conto](#importare-un-estratto-conto)
 - [Backup e trasferimento dei dati](#backup-e-trasferimento-dei-dati)
@@ -26,14 +29,59 @@ Versione "leggera" e standalone di [Personal-Finance](https://github.com/Jackill
 - **Movimenti** — lista raggruppata per mese (e per giorno su mobile) con totali, ricerca, filtri a scomparsa, export CSV; inserimento e modifica in un pannello laterale
 - **Navigazione mobile** — barra in basso (Home, Movimenti, +, Abbonamenti, Altro) con il pulsante "+" sempre a portata di pollice
 - **Budget** — categorie con limite mensile, spese e entrate ricorrenti generate da sole ogni mese
+- **Pianificazione** — spese ed entrate previste per l'anno, categoria per categoria, confrontate con quelle reali (benchmark) e, durante l'anno, con l'andamento effettivo (vedi sotto)
 - **Abbonamenti** — periodicità mensile o annuale, rinnovo automatico alla scadenza (con uscita registrata tra i movimenti) finché non li elimini, costo mensile/annuo complessivo e promemoria Telegram 3 giorni prima del rinnovo
-- **Conti** — saldo calcolato da saldo iniziale + movimenti, multi-conto
+- **Conti** — saldo calcolato da saldo iniziale + movimenti, multi-conto, giroconti
+- **Carte di credito** — plafond, utilizzato e disponibile; nel giorno di addebito il debito del mese precedente viene saldato con un giroconto automatico dal conto scelto
 - **Obiettivi di risparmio** — target, scadenza, versamenti
 - **Investimenti** — posizioni con P&L e allocazione per tipo di strumento
 - **Tema e colori** — 5 temi pronti (Originale, Chiaro, Notte blu, Foresta, Prugna) o colori personalizzati per sfondo, pannelli, testo, accento e stati; preferenza salvata sul dispositivo, il report PDF resta chiaro
 - **Import CSV** — riconosce da solo separatore, formato data, colonna importi (anche il formato a due colonne Uscite/Entrate degli estratti italiani) e propone una categoria per ogni riga
 - **Bot Telegram** — registra spese scrivendo un messaggio al bot (vedi sotto)
 - **PWA installabile** — icona sulla schermata Home, funziona offline dopo la prima visita
+- **Help** — tutorial passo per passo con screenshot, dentro l'app (scheda **Help**, su telefono in **Altro**)
+
+---
+
+## Screenshot
+
+| Dashboard | Pianificazione |
+|---|---|
+| ![Dashboard con KPI, entrate/uscite degli ultimi 6 mesi, prossime scadenze e spese per categoria](help/01-dashboard.jpg) | ![Pianificazione dell'anno prossimo confrontata con le spese reali](help/06-pianificazione.jpg) |
+
+| Movimenti | Import CSV |
+|---|---|
+| ![Elenco movimenti raggruppato per mese con filtri](help/03-movimenti.jpg) | ![Anteprima di un estratto conto con categorie proposte](help/04-importa.jpg) |
+
+| Telefono | Nuovo movimento |
+|---|---|
+| <img src="help/10-mobile.jpg" alt="Dashboard su telefono con la barra di navigazione in basso" width="300"> | <img src="help/02-movimento.jpg" alt="Pannello Nuovo movimento su telefono" width="300"> |
+
+Le stesse immagini compaiono nel tutorial dentro l'app. Sono generate con i dati di esempio.
+
+---
+
+## Pianificazione annuale
+
+La scheda **Pianificazione** serve a decidere quanto spendere l'anno prossimo partendo da quanto hai speso davvero.
+
+1. Scegli l'**anno da pianificare** (di default il prossimo) e il **benchmark**: gli ultimi 12 mesi conclusi oppure un anno intero di movimenti reali.
+2. **Proponi dal benchmark** riempie il piano: per ogni categoria la spesa reale annua più un **ritocco %** (per esempio l'inflazione prevista).
+3. Correggi le singole categorie nella colonna **Previsto / anno**. Per ognuna vedi il mensile, lo scostamento dal benchmark in euro e percentuale, e i totali.
+4. I riquadri in alto riassumono uscite pianificate, uscite del benchmark, entrate pianificate e **risparmio previsto** con il tasso di risparmio.
+5. Il grafico **Uscite mese per mese** mette a confronto, mese per mese, il benchmark e il piano.
+
+Quando l'anno pianificato arriva compare la colonna **Reale**: una barra mostra quanto hai già speso rispetto al piano, con una tacca che indica dove dovresti essere a quella data. La barra diventa gialla se vai più veloce del previsto e rossa se superi il piano.
+
+Se hai meno di 12 mesi di dati, il benchmark usa la **media mensile × 12**. Nel grafico i mesi senza dati sono stimati dalla media e mostrati più chiari. I piani sono inclusi nel backup; con **Unisci** gli anni già pianificati non vengono sovrascritti.
+
+---
+
+## Help e tutorial
+
+La scheda **Help** (su telefono: **Altro → Help e tutorial**) spiega l'app in 10 argomenti, ognuno con i passaggi e uno screenshot: primi passi, registrare un movimento, cercare e filtrare, importare un estratto conto, budget e ricorrenti, pianificazione, abbonamenti, conti e carte di credito, backup/tema/Telegram, uso sul telefono.
+
+Le immagini stanno nella cartella `help/` accanto a `index.html`. Se apri il solo file HTML senza la cartella, il tutorial resta leggibile e le immagini vengono semplicemente omesse.
 
 ---
 
@@ -125,14 +173,17 @@ Un webhook richiede un server pubblico che riceva le chiamate di Telegram in tem
 
 ## Sviluppo e hosting
 
-Due file, nessuna build, nessuna dipendenza da installare:
+Nessuna build, nessuna dipendenza da installare:
 
 ```
 index.html   — l'intera app (HTML, CSS, JavaScript)
 sw.js        — service worker per l'uso offline e l'installazione come PWA
+help/        — screenshot del tutorial (facoltativi: senza, l'app funziona lo stesso)
 ```
 
-Vanno tenuti nella stessa cartella su qualunque hosting statico (GitHub Pages, come qui, oppure Vercel, Netlify, ecc.). In locale bastano due click: scarica entrambi i file e apri `index.html` col browser — funziona anche senza server, con l'unica differenza che il service worker non si registra da `file://` (nessun errore, solo niente cache offline).
+Vanno tenuti nella stessa cartella su qualunque hosting statico (GitHub Pages, come qui, oppure Vercel, Netlify, ecc.). In locale basta scaricarli e aprire `index.html` col browser: funziona anche senza server, con l'unica differenza che il service worker non si registra da `file://` (nessun errore, solo niente cache offline).
+
+Gli screenshot in `help/` si rigenerano con i dati di esempio (finestra 1200 px per il desktop, 390 px per il telefono): se cambi l'aspetto di una schermata, aggiorna anche la sua immagine.
 
 ## Limiti da conoscere
 
